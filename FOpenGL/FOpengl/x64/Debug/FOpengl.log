@@ -1,0 +1,8 @@
+﻿  EntryPoint.cpp
+  GLApplication.cpp
+  GLWindow.cpp
+  ShaderManager.cpp
+C:\Users\fedor\OneDrive\Документы\GitHub\FOpenGL\FOpenGL\ShaderManager.cpp(114,27): warning C4267: '=': conversion from 'size_t' to 'GLint', possible loss of data
+  Generating Code...
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  FOpengl.vcxproj -> C:\Users\fedor\OneDrive\Документы\GitHub\FOpenGL\FOpenGL\x64\Debug\FOpengl.exe

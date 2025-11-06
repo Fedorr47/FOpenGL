@@ -33,7 +33,7 @@ private:
     glm::mat4 projection_{};
 
     DirectionalLight dirLight_;
-    std::vector<PointLight> pointLights_;
+    std::vector<std::shared_ptr<PointLight>> pointLights_;
 
     std::vector<std::unique_ptr<Mesh>> meshes_;
     std::vector<std::shared_ptr<Material>> materials_;

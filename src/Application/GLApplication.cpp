@@ -3,6 +3,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <stack>
+
 #include "Utils/RenderUtils.h"
 
 #ifdef USE_IMGUI
@@ -54,9 +56,9 @@ void GLApplication::CreateScene()
     
     PointLightProperties plp;
     plp.Colour = {1,0,0}; plp.Position = {-3,1,0};
-    pointLights_.push_back(PointLight(plp));
+    pointLights_.push_back(std::make_shared<PointLight>(plp));
     plp.Colour = {0,0,1}; plp.Position = { 3,1,0};
-    pointLights_.push_back(PointLight(plp));
+    pointLights_.push_back(std::make_shared<PointLight>(plp));
 
     // Geometry: a simple floor quad and a pyramid like in your example
     std::vector<float> pyramid = {
@@ -118,7 +120,8 @@ void GLApplication::DrawUI()
     ImGui::End();
 
     ImGuiHandler::DrawDirectionalLightGui(dirLight_);
-    ImGuiHandler::DrawPointLightsGui(pointLights_);
+    int CurrentLightPointsNum = Shader::MAX_POINT_LIGHTS;
+    ImGuiHandler::DrawPointLightsGui(pointLights_,(int)Shader::MAX_POINT_LIGHTS);
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -138,9 +141,14 @@ void GLApplication::RenderFrame()
     // Lights
     dirLight_.UseLight(shader_->DirLight);
     glUniform1i(shader_->UniPointLightCount, (GLint)pointLights_.size());
-    for (int i=0;i<(int)pointLights_.size() && i<Shader::MAX_POINT_LIGHTS;++i)
-        pointLights_[i].UseLight(shader_->PointLights[i]);
-
+    for (int i = 0; i<static_cast<int>(pointLights_.size()) && i < Shader::MAX_POINT_LIGHTS; ++i)
+    {
+        if (pointLights_[i] == nullptr)
+        {
+            continue;
+        }
+        pointLights_[i]->UseLight(shader_->PointLights[i]);
+    }
     // Draw pyramid
     glm::mat4 model(1.0f);
     model = glm::translate(model, {0,0,-2.5f});

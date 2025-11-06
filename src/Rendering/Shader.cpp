@@ -88,47 +88,23 @@ bool Shader::LinkAndReflect()
     uniSpecularIntensity_ = get("material.specularIntensity");
     uniShininess_ = get("material.shininess");
 
-    DirLight.colour = get("directionalLight.base.colour");
-    DirLight.ambientIntensity = get("directionalLight.base.ambientIntensity");
-    DirLight.diffuseIntensity = get("directionalLight.base.diffuseIntensity");
-    DirLight.direction = get("directionalLight.direction");
+    DirLight.Colour           = get("directionalLight.base.colour");
+    DirLight.AmbientIntensity = get("directionalLight.base.ambientIntensity");
+    DirLight.DiffuseIntensity = get("directionalLight.base.diffuseIntensity");
+    DirLight.Direction        = get("directionalLight.direction");
 
     UniPointLightCount = get("pointLightCount");
     for (int i=0;i<MAX_POINT_LIGHTS;++i) {
-        std::string base = "pointLights[" + std::to_string(i) + "].";
-        PointLights[i].colour           = get((base + "base.colour").c_str());
-        PointLights[i].ambientIntensity = get((base + "base.ambientIntensity").c_str());
-        PointLights[i].diffuseIntensity = get((base + "base.diffuseIntensity").c_str());
-        PointLights[i].position         = get((base + "position").c_str());
-        PointLights[i].constant         = get((base + "constant").c_str());
-        PointLights[i].linear           = get((base + "linear").c_str());
-        PointLights[i].exponent         = get((base + "exponent").c_str());
-
-        /*
-        char locBuff[100] = { '\0' };
-
-        snprintf(locBuff, sizeof(locBuff), "pointLights[%d].base.colour", i);
-        PointLights[i].colour= glGetUniformLocation(program_, locBuff);
-
-        snprintf(locBuff, sizeof(locBuff), "pointLights[%d].base.ambientIntensity", i);
-        PointLights[i].ambientIntensity = glGetUniformLocation(program_, locBuff);
-
-        snprintf(locBuff, sizeof(locBuff), "pointLights[%d].base.diffuseIntensity", i);
-        PointLights[i].diffuseIntensity = glGetUniformLocation(program_, locBuff);
-
-        snprintf(locBuff, sizeof(locBuff), "pointLights[%d].position", i);
-        PointLights[i].position = glGetUniformLocation(program_, locBuff);
-
-        snprintf(locBuff, sizeof(locBuff), "pointLights[%d].constant", i);
-        PointLights[i].constant = glGetUniformLocation(program_, locBuff);
-
-        snprintf(locBuff, sizeof(locBuff), "pointLights[%d].linear", i);
-        PointLights[i].linear = glGetUniformLocation(program_, locBuff);
-
-        snprintf(locBuff, sizeof(locBuff), "pointLights[%d].exponent", i);
-        PointLights[i].exponent = glGetUniformLocation(program_, locBuff);
-        */
+        std::string b = "pointLights[" + std::to_string(i) + "].";
+        PointLights[i].Colour           = get((b + "base.colour").c_str());
+        PointLights[i].AmbientIntensity = get((b + "base.ambientIntensity").c_str());
+        PointLights[i].DiffuseIntensity = get((b + "base.diffuseIntensity").c_str());
+        PointLights[i].Position         = get((b + "position").c_str());
+        PointLights[i].Constant         = get((b + "constant").c_str());
+        PointLights[i].Linear           = get((b + "linear").c_str());
+        PointLights[i].Exponent         = get((b + "exponent").c_str());
     }
+    
     return true;
 }
 

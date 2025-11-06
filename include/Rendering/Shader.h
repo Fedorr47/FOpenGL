@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <GL/glew.h>
 
+#include "Light/LightProperties.h"
+
 struct DirectionalLightUniform {
     GLint colour = -1;
     GLint ambientIntensity = -1;
@@ -39,9 +41,9 @@ public:
     GLint GetUniformSpecularIntensity() const { return uniSpecularIntensity_; }
     GLint GetUniformShininess() const { return uniShininess_; }
 
-    DirectionalLightUniform DirLight{};
+    DirectionalLightUniformObjects DirLight{};
     static constexpr int MAX_POINT_LIGHTS = 8;
-    PointLightUniform PointLights[MAX_POINT_LIGHTS];
+    PointLightUniformObjects PointLights[MAX_POINT_LIGHTS];
     GLint UniPointLightCount = -1;
 
 private:

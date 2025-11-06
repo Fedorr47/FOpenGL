@@ -1,26 +1,20 @@
-
 #pragma once
-#include "Light/LightCommon.h"
-#include "Rendering/Shader.h"
+#include "Light/Light.h"
+#include "Light/LightProperties.h"
 
-class PointLight {
+class PointLight
+  : public Light<PointLightProperties, PointLightUniformObjects>
+{
 public:
+    using Base = Light<PointLightProperties, PointLightUniformObjects>;
     PointLight() = default;
-    explicit PointLight(const PointLightProperties& p): props(p) {}
+    explicit PointLight(const PointLightProperties& p) : Base(p) {}
 
-    void Apply(const Shader& sh, int index) const {
-        const auto& u = sh.PointLights[index];
-        glUniform3f(u.colour, props.Colour.r, props.Colour.g, props.Colour.b);
-        glUniform1f(u.ambientIntensity, props.AmbientIntensity);
-        glUniform1f(u.diffuseIntensity, props.DiffuseIntensity);
-        glUniform3f(u.position, props.Position.x, props.Position.y, props.Position.z);
-        glUniform1f(u.constant, props.Constant);
-        glUniform1f(u.linear,   props.Linear);
-        glUniform1f(u.exponent, props.Exponent);
+    void UseLight(const PointLightUniformObjects& u) const override {
+        Base::UseLight(u);
+        glUniform3f(u.Position, Props.Position.x, Props.Position.y, Props.Position.z);
+        glUniform1f(u.Constant, Props.Constant);
+        glUniform1f(u.Linear,   Props.Linear);
+        glUniform1f(u.Exponent, Props.Exponent);
     }
-
-    PointLightProperties& Properties() { return props; }
-
-private:
-    PointLightProperties props{};
 };

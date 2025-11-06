@@ -136,10 +136,10 @@ void GLApplication::RenderFrame()
     glUniform3f(shader_->GetUniformEyePos(), camera_->GetPosition().x, camera_->GetPosition().y, camera_->GetPosition().z);
 
     // Lights
-    dirLight_.Apply(*shader_);
+    dirLight_.UseLight(shader_->DirLight);
     glUniform1i(shader_->UniPointLightCount, (GLint)pointLights_.size());
     for (int i=0;i<(int)pointLights_.size() && i<Shader::MAX_POINT_LIGHTS;++i)
-        pointLights_[i].Apply(*shader_, i);
+        pointLights_[i].UseLight(shader_->PointLights[i]);
 
     // Draw pyramid
     glm::mat4 model(1.0f);

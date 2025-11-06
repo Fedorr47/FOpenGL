@@ -10,7 +10,7 @@ namespace ImGuiHandler {
 
 inline void DrawDirectionalLightGui(DirectionalLight& dl) {
     ImGui::Begin("Directional Light");
-    auto& p = dl.Properties();
+    auto& p = dl.GetProperties();
     ImGui::ColorEdit3("Colour", &p.Colour.x);
     ImGui::DragFloat3("Direction", &p.Direction.x, 0.01f, -1.0f, 1.0f);
     ImGui::SliderFloat("Ambient", &p.AmbientIntensity, 0.0f, 2.0f);
@@ -22,7 +22,7 @@ inline void DrawPointLightsGui(std::vector<PointLight>& pls) {
     ImGui::Begin("Point Lights");
     for (size_t i=0;i<pls.size();++i) {
         if (ImGui::TreeNode((void*)i, "PointLight %zu", i)) {
-            auto& p = pls[i].Properties();
+            auto& p = pls[i].GetProperties();
             ImGui::ColorEdit3("Colour", &p.Colour.x);
             ImGui::DragFloat3("Position", &p.Position.x, 0.05f);
             ImGui::SliderFloat("Ambient", &p.AmbientIntensity, 0.0f, 2.0f);

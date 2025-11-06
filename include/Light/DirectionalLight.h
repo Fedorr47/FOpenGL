@@ -1,27 +1,26 @@
-
 #pragma once
-#include "Light/LightCommon.h"
-#include "Rendering/Shader.h"
-#include <glm/glm.hpp>
+#include "Light/Light.h"
+#include "Light/LightProperties.h"
 #include <glm/geometric.hpp>
 
-class DirectionalLight {
+class DirectionalLight
+  : public Light<DirectionalLightProperties, DirectionalLightUniformObjects>
+{
 public:
+    using Base = Light<DirectionalLightProperties, DirectionalLightUniformObjects>;
     DirectionalLight() = default;
-    explicit DirectionalLight(const DirectionalLightProperties& p): props(p) {}
+    explicit DirectionalLight(const DirectionalLightProperties& p) : Base(p) {}
 
-    void Apply(const Shader& sh) const {
-        auto d = props.Direction;
+    void UseLight(const DirectionalLightUniformObjects& u) const override {
+        Base::UseLight(u);
+        glm::vec3 d = Props.Direction;
         if (glm::length(d) > 0.0f) d = glm::normalize(d);
-        glUniform3f(sh.DirLight.colour, props.Colour.r, props.Colour.g, props.Colour.b);
-        glUniform1f(sh.DirLight.ambientIntensity, props.AmbientIntensity);
-        glUniform1f(sh.DirLight.diffuseIntensity, props.DiffuseIntensity);
-        glUniform3f(sh.DirLight.direction, d.x, d.y, d.z);
+        glUniform3f(u.Direction, d.x, d.y, d.z);
     }
 
-    DirectionalLightProperties& Properties() { return props; }
-    const DirectionalLightProperties& Properties() const { return props; }
-
-private:
-    DirectionalLightProperties props{};
+    void SetProperties(const DirectionalLightProperties& p) override {
+        Base::SetProperties(p);
+        if (glm::length(Props.Direction) > 0.0f)
+            Props.Direction = glm::normalize(Props.Direction);
+    }
 };

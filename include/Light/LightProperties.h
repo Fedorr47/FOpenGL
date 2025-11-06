@@ -18,3 +18,21 @@ struct PointLightProperties : CommonLightProperties {
     float Linear{0.09f};
     float Exponent{0.032f};
 };
+
+// -------- locations uniform-fields in a shader --------
+struct CommonLightUniformObjects {
+    GLint Colour{-1};
+    GLint AmbientIntensity{-1};
+    GLint DiffuseIntensity{-1};
+};
+
+struct DirectionalLightUniformObjects : CommonLightUniformObjects {
+    GLint Direction{-1};
+};
+
+struct PointLightUniformObjects : CommonLightUniformObjects {
+    GLint Position{-1};
+    GLint Constant{-1};
+    GLint Linear{-1};
+    GLint Exponent{-1};
+};

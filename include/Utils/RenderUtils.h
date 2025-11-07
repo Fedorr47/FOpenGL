@@ -1,6 +1,6 @@
 #pragma once
 
-static void ComputeAverageNormals(
+static void CalculateAverageNormals(
     std::vector<float>& v, const std::vector<unsigned>& idx,
     unsigned strideFloats = 8, unsigned normalOffset = 5)
 {

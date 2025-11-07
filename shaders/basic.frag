@@ -1,23 +1,27 @@
 #version 330 core
+
 in vec2 TexCoord;
 in vec3 Normal;
 in vec3 FragPos;
+
 out vec4 colour;
 
+const int MAX_POINT_LIGHTS = 3;
+
 struct Light {
-    vec3 colour;
+    vec3  colour;
     float ambientIntensity;
     float diffuseIntensity;
 };
 
 struct DirectionalLight {
     Light base;
-    vec3 direction;
+    vec3  direction;
 };
 
 struct PointLight {
     Light base;
-    vec3 position;
+    vec3  position;
     float constant;
     float linear;
     float exponent;
@@ -28,61 +32,57 @@ struct Material {
     float shininess;
 };
 
-const int MAX_POINT_LIGHTS = 8;
-
-uniform DirectionalLight directionalLight;
-uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform int pointLightCount;
 
-uniform Material material;
-uniform vec3 eyePosition;
+uniform DirectionalLight directionalLight;
+uniform PointLight      pointLights[MAX_POINT_LIGHTS];
+
 uniform sampler2D theTexture;
+uniform Material  material;
+uniform vec3      eyePosition;
 
-vec3 ApplyLight(Light light, vec3 L, vec3 N, vec3 V)
+vec4 CalcLightByDirection(Light light, vec3 L)
 {
-    L = normalize(L); N = normalize(N); V = normalize(V);
-    vec3 ambient = light.colour * light.ambientIntensity;
-    float NdotL = max(dot(N,L), 0.0);
-    vec3 diffuse = light.colour * light.diffuseIntensity * NdotL;
+    vec3 N = normalize(Normal);
+    vec3 Ln = normalize(-L);          // к фрагменту
+    vec4 ambient  = vec4(light.colour * light.ambientIntensity, 1.0);
 
-    vec3 R = reflect(-L, N);
-    float spec = pow(max(dot(R, V), 0.0), material.shininess);
-    vec3 specular = light.colour * material.specularIntensity * spec;
+    float NdotL   = max(dot(N, Ln), 0.0);
+    vec4 diffuse  = vec4(light.colour * light.diffuseIntensity * NdotL, 1.0);
 
+    vec4 specular = vec4(0.0);
+    if (NdotL > 0.0) {
+        vec3 V = normalize(eyePosition - FragPos);
+        vec3 R = reflect(-Ln, N);
+        float s = pow(max(dot(V, R), 0.0), material.shininess);
+        specular = vec4(light.colour * material.specularIntensity * s, 1.0);
+    }
     return ambient + diffuse + specular;
 }
 
-vec4 CalcDirectional()
+vec4 CalcDirectionalLight()
 {
-    vec3 L = -directionalLight.direction;
-    vec3 V = eyePosition - FragPos;
-    vec3 N = Normal;
-    vec3 res = ApplyLight(directionalLight.base, L, N, V);
-    return vec4(res, 1.0);
+    // направление из источника к фрагменту — берём -dir
+    return CalcLightByDirection(directionalLight.base, -directionalLight.direction);
 }
 
-vec4 CalcPoints()
+vec4 CalcPointLights()
 {
-    vec3 V = eyePosition - FragPos;
-    vec3 N = Normal;
-    vec3 total = vec3(0.0);
-    for (int i=0;i<pointLightCount;i++) {
-        vec3 L = pointLights[i].position - FragPos;
+    vec4 total = vec4(0.0);
+    for (int i = 0; i < pointLightCount; ++i) {
+        vec3 L = FragPos - pointLights[i].position; // из источника к фрагменту
         float d = length(L);
-        vec3 c = ApplyLight(pointLights[i].base, L, N, V);
-        float atten = pointLights[i].constant + pointLights[i].linear * d + pointLights[i].exponent * d * d;
-        total += c / max(atten, 0.0001);
+        vec4 c  = CalcLightByDirection(pointLights[i].base, L);
+        float att = pointLights[i].exponent * d * d +
+        pointLights[i].linear   * d +
+        pointLights[i].constant;
+        total += c / att;
     }
-    return vec4(total, 1.0);
+    return total;
 }
 
 void main()
 {
-    vec3 albedo = texture(theTexture, TexCoord).rgb;
-
-    vec4 dirCol   = CalcDirectional();
-    vec4 pointsCol= CalcPoints();
-    vec3 lit = dirCol.rgb + pointsCol.rgb;
-    
-    colour = vec4(albedo * (dirCol.rgb + pointsCol.rgb), 1.0);
+    vec4 lit = CalcDirectionalLight() + CalcPointLights();
+    colour = texture(theTexture, TexCoord) * lit;
 }

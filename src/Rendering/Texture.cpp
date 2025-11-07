@@ -25,10 +25,8 @@ bool Texture::Load()
     return true;
 }
 
-void Texture::Use(GLenum unit) const
-{
-    glActiveTexture(unit);
-    glBindTexture(GL_TEXTURE_2D, tex_);
+void Texture::Use(int unit) const {
+    glBindTextureUnit(unit, tex_);
 }
 
 void Texture::Clear()

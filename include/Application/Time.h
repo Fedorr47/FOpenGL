@@ -48,7 +48,12 @@ public:
     }
     
     void reset();
-    void beginFrame(std::optional<double> externalUnscaledDtSec = std::nullopt);
+    void beginFrame(); // измерить now - last_
+    void beginFrame(std::chrono::duration<double> externalUnscaledDt);
+    template<class Rep, class Period>
+    void beginFrame(std::chrono::duration<Rep,Period> d) {
+        beginFrame(std::chrono::duration<double>(d));
+    }
     void setPaused(bool bPaused) { state_.paused = bPaused; }
     void setFixedStep(double sec);
     void setTimeScale(float inTimeScale) { state_.timeScale = inTimeScale; }
@@ -62,6 +67,20 @@ public:
     const TimeState& get() const { return state_; }
 
     void stepOnce(double stepSec) { acc_ += std::max(0.0, stepSec);}
+    template<class Rep, class Period>
+    void stepOnce(std::chrono::duration<Rep,Period> d) {
+        stepOnce(std::chrono::duration<double>(d).count());
+    }
+
+    template<class Rep, class Period>
+    void setMaxFrameClamp(std::chrono::duration<Rep,Period> d) {
+        setMaxFrameClamp(std::chrono::duration<double>(d).count());
+    }
+    template<class Rep, class Period>
+    void setMaxCatchUp(std::chrono::duration<Rep,Period> d) {
+        setMaxCatchUp(std::chrono::duration<double>(d).count());
+    }
+
     template<FixedTickFn F>
     int runFixed(F&& onFixedTick) { return runFixedForStep(fixedStep_, std::forward<F>(onFixedTick)); }
     template<FixedTickFn F>
@@ -90,23 +109,19 @@ int GameClock::runFixedForStep(std::chrono::duration<double> step, F&& onFixedTi
     FixedTickArgs args{step, /*tickIndex=*/0, /*consumedSec=*/0.0};
 
     while (budget + 1e-12 >= stepSec) {
-        if constexpr (std::invocable<F, std::chrono::duration<double>>)
-        {
+        args.tickIndex   += 1;
+        args.consumedSec += stepSec;
+
+        if constexpr (std::invocable<F, std::chrono::duration<double>>) {
             std::invoke(onFixedTick, step);
-        }
-        else if constexpr (std::invocable<F, const FixedTickArgs&>)
-        {
+        } else if constexpr (std::invocable<F, const FixedTickArgs&>) {
             std::invoke(onFixedTick, args);
-        }
-        else
-        {
+        } else {
             std::invoke(onFixedTick);
         }
 
-        budget   -= stepSec;
-        acc_     -= stepSec;
-        args.consumedSec += stepSec;
-        ++args.tickIndex;
+        budget -= stepSec;
+        acc_   -= stepSec;
         ++ticks;
     }
     return ticks;
@@ -121,23 +136,19 @@ int GameClock::runFixedCapped(std::chrono::duration<double> step, int maxTicks, 
     FixedTickArgs args{step, /*tickIndex=*/0, /*consumedSec=*/0.0};
 
     while (budget + 1e-12 >= stepSec && ticks < maxTicks) {
-        if constexpr (std::invocable<F, std::chrono::duration<double>>)
-        {
+        args.tickIndex   += 1;
+        args.consumedSec += stepSec;
+
+        if constexpr (std::invocable<F, std::chrono::duration<double>>) {
             std::invoke(onFixedTick, step);
-        }
-        else if constexpr (std::invocable<F, const FixedTickArgs&>)
-        {
+        } else if constexpr (std::invocable<F, const FixedTickArgs&>) {
             std::invoke(onFixedTick, args);
-        }
-        else
-        {
+        } else {
             std::invoke(onFixedTick);
         }
 
-        budget   -= stepSec;
-        acc_     -= stepSec;
-        args.consumedSec += stepSec;
-        ++args.tickIndex;
+        budget -= stepSec;
+        acc_   -= stepSec;
         ++ticks;
     }
     return ticks;

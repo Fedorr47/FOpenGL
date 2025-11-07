@@ -4,20 +4,13 @@ project(FOpenGL LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(WITH_IMGUI "Build with Dear ImGui UI layer" ON)
+option(WITH_IMGUI  "Build with Dear ImGui UI layer" ON)
+option(WITH_TESTS  "Build unit tests"               ON)
 
-# -- vcpkg-friendly find_package --
-find_package(glfw3 CONFIG REQUIRED)   # vcpkg target: glfw
-find_package(GLEW  CONFIG REQUIRED)   # vcpkg target: GLEW::GLEW
-find_package(glm   CONFIG REQUIRED)   # vcpkg target: glm::glm
-
-set(HAVE_PKG_IMGUI OFF)
-if (WITH_IMGUI)
-  find_package(imgui CONFIG QUIET)
-  if (TARGET imgui::imgui)
-    set(HAVE_PKG_IMGUI ON)
-  endif()
-endif()
+# --- deps via vcpkg ---
+find_package(glfw3 CONFIG REQUIRED)   # target: glfw
+find_package(glad  CONFIG REQUIRED)   # target: glad::glad
+find_package(glm   CONFIG REQUIRED)   # target: glm::glm
 
 add_library(FOpenGL STATIC
     src/Application/GLApplication.cpp
@@ -36,8 +29,9 @@ add_library(FOpenGL STATIC
 )
 target_include_directories(FOpenGL PUBLIC include)
 
-target_link_libraries(FOpenGL PUBLIC glfw GLEW::GLEW glm::glm)
+target_link_libraries(FOpenGL PUBLIC glad::glad glfw glm::glm)
 
+# ---------------- ImGui ----------------
 if (WITH_IMGUI)
   set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extern/imgui")
   if (EXISTS "${IMGUI_DIR}/imgui.cpp")
@@ -53,9 +47,8 @@ if (WITH_IMGUI)
       ${IMGUI_DIR}
       ${IMGUI_DIR}/backends
     )
-    target_link_libraries(imgui PUBLIC glfw GLEW::GLEW)
-
-    target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLEW)
+    target_link_libraries(imgui PUBLIC glfw)
+    target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)
 
     target_link_libraries(FOpenGL PUBLIC imgui)
     target_compile_definitions(FOpenGL PUBLIC USE_IMGUI=1)
@@ -64,7 +57,11 @@ if (WITH_IMGUI)
   endif()
 endif()
 
+# --------------- app -------------------
 add_executable(FOpenGL_app src/Application/main.cpp)
+set_target_properties(FOpenGL_app PROPERTIES
+  VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:FOpenGL_app>"
+)
 target_link_libraries(FOpenGL_app PRIVATE FOpenGL)
 
 add_custom_command(TARGET FOpenGL_app POST_BUILD
@@ -73,12 +70,14 @@ add_custom_command(TARGET FOpenGL_app POST_BUILD
           "$<TARGET_FILE_DIR:FOpenGL_app>/shaders"
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-          "$<TARGET_FILE_DIR:FOpenGL_app>/assets")
+          "$<TARGET_FILE_DIR:FOpenGL_app>/assets"
+)
 
-# ---- tests ----
+# --------------- tests -----------------
 if (WITH_TESTS)
   include(CTest)
-  # Try vcpkg first
+
+  # vcpkg first
   find_package(GTest CONFIG QUIET)
   if (NOT TARGET GTest::gtest)
     message(STATUS "GTest via package manager not found. Using FetchContent.")
@@ -96,7 +95,6 @@ if (WITH_TESTS)
   target_include_directories(FOpenGL_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
   target_link_libraries(FOpenGL_tests PRIVATE FOpenGL glm::glm)
 
-  # Pick correct gtest targets (vcpkg or FetchContent)
   if (TARGET GTest::gtest_main)
     target_link_libraries(FOpenGL_tests PRIVATE GTest::gtest GTest::gtest_main)
   else()
@@ -109,6 +107,6 @@ if (WITH_TESTS)
   if (_has_gtest_mod)
     gtest_discover_tests(FOpenGL_tests)
   else()
-    add_test(NAME fogl_tests COMMAND fogl_tests)
+    add_test(NAME FOpenGL_tests COMMAND FOpenGL_tests)
   endif()
 endif()

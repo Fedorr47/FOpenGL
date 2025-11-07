@@ -1,7 +1,8 @@
 
 #pragma once
 #include <string>
-#include <GL/glew.h>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 class Texture {
 public:
@@ -10,7 +11,7 @@ public:
     ~Texture();
 
     bool Load();
-    void Use(GLenum unit = GL_TEXTURE0) const;
+    void Use(int unit) const;
     void Clear();
 
 private:

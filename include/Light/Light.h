@@ -1,20 +1,21 @@
+// Light.h
 #pragma once
 #include <concepts>
 #include <glm/glm.hpp>
-#include <GL/glew.h>
+#include <glad/glad.h>
 
 template<class P>
 concept LightPropsType = requires(P p) {
-    { p.Colour } -> std::convertible_to<glm::vec3>;
+    { p.AmbientColour }           -> std::convertible_to<glm::vec3>;
     { p.AmbientIntensity } -> std::convertible_to<float>;
     { p.DiffuseIntensity } -> std::convertible_to<float>;
 };
 
 template<class U>
 concept UniformObjectsType = requires(U u) {
-    { u.Colour } -> std::convertible_to<GLint>;
-    { u.AmbientIntensity } -> std::convertible_to<GLint>;
-    { u.DiffuseIntensity } -> std::convertible_to<GLint>;
+    { u.AmbientColourLocation }    -> std::convertible_to<GLint>;
+    { u.AmbientIntensityLocation } -> std::convertible_to<GLint>;
+    { u.DiffuseIntensityLocation } -> std::convertible_to<GLint>;
 };
 
 template<LightPropsType P, UniformObjectsType U>
@@ -23,11 +24,17 @@ public:
     Light() = default;
     explicit Light(const P& in) : Props(in) {}
     virtual ~Light() = default;
-
+    
     virtual void UseLight(const U& u) const {
-        glUniform3f(u.Colour, Props.Colour.r, Props.Colour.g, Props.Colour.b);
-        glUniform1f(u.AmbientIntensity, Props.AmbientIntensity);
-        glUniform1f(u.DiffuseIntensity, Props.DiffuseIntensity);
+        if (u.AmbientColourLocation    != -1) glUniform3f(u.AmbientColourLocation, Props.AmbientColour.r, Props.AmbientColour.g, Props.AmbientColour.b);
+        if (u.AmbientIntensityLocation != -1) glUniform1f(u.AmbientIntensityLocation, Props.AmbientIntensity);
+        if (u.DiffuseIntensityLocation != -1) glUniform1f(u.DiffuseIntensityLocation, Props.DiffuseIntensity);
+    }
+    
+    virtual void UseLightDSA(GLuint program, const U& u) const {
+        if (u.AmbientColourLocation    != -1) glProgramUniform3f(program, u.AmbientColourLocation, Props.AmbientColour.r, Props.AmbientColour.g, Props.AmbientColour.b);
+        if (u.AmbientIntensityLocation != -1) glProgramUniform1f(program, u.AmbientIntensityLocation, Props.AmbientIntensity);
+        if (u.DiffuseIntensityLocation != -1) glProgramUniform1f(program, u.DiffuseIntensityLocation, Props.DiffuseIntensity);
     }
 
     virtual void SetProperties(const P& p) { Props = p; }

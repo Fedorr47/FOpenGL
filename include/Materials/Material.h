@@ -1,16 +1,15 @@
 
 #pragma once
-#include <GL/glew.h>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 class Material {
 public:
     Material(float specularIntensity, float shininess)
     : specularIntensity_(specularIntensity), shininess_(shininess) {}
 
-    void Use(GLint specularIntensityLoc, GLint shininessLoc) const {
-        glUniform1f(specularIntensityLoc, specularIntensity_);
-        glUniform1f(shininessLoc, shininess_);
-    }
+    void Use(GLint specLoc, GLint shinLoc) const;
+    void UseDSA(GLuint program, GLint specLoc, GLint shinLoc) const;
 
 private:
     float specularIntensity_;

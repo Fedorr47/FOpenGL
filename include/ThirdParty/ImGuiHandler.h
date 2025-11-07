@@ -11,7 +11,7 @@ namespace ImGuiHandler {
 inline void DrawDirectionalLightGui(DirectionalLight& dl) {
     ImGui::Begin("Directional Light");
     auto& p = dl.GetProperties();
-    ImGui::ColorEdit3("Colour", &p.Colour.x);
+    ImGui::ColorEdit3("Colour", &p.AmbientColour.x);
     ImGui::DragFloat3("Direction", &p.Direction.x, 0.01f, -1.0f, 1.0f);
     ImGui::SliderFloat("Ambient", &p.AmbientIntensity, 0.0f, 2.0f);
     ImGui::SliderFloat("Diffuse", &p.DiffuseIntensity, 0.0f, 5.0f);
@@ -21,7 +21,7 @@ inline void DrawDirectionalLightGui(DirectionalLight& dl) {
 inline PointLightProperties MakeDefaultPL()
 {
     PointLightProperties p{};
-    p.Colour = {1.0f, 1.0f, 1.0f};
+    p.AmbientColour = {1.0f, 1.0f, 1.0f};
     p.AmbientIntensity = 0.1f;
     p.DiffuseIntensity = 1.0f;
     p.Position = {0.0f, 1.0f, 0.0f};
@@ -69,9 +69,9 @@ inline void DrawPointLightsGui(std::span<std::shared_ptr<PointLight>> lights,
         {
             auto props = light.GetProperties();
 
-            float col[3] = { props.Colour.r, props.Colour.g, props.Colour.b };
+            float col[3] = { props.AmbientColour.r, props.AmbientColour.g, props.AmbientColour.b };
             if (ImGui::ColorEdit3("Colour", col))
-                props.Colour = { col[0], col[1], col[2] };
+                props.AmbientColour = { col[0], col[1], col[2] };
 
 
             ImGui::SliderFloat("Ambient", &props.AmbientIntensity, 0.0f, 2.0f, "%.2f");

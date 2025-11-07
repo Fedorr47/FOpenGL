@@ -1,17 +1,18 @@
-
 #pragma once
 #include <memory>
 #include <vector>
-#include <glm/glm.hpp>
-#include "Window/GLWindow.h"
-#include "Rendering/Shader.h"
-#include "Rendering/Texture.h"
-#include "Rendering/Mesh.h"
-#include "Camera/Camera.h"
-#include "Light/DirectionalLight.h"
-#include "Light/PointLight.h"
-#include "Materials/Material.h"
+#include <glm/mat4x4.hpp>
+
 #include "Application/Time.h"
+#include "Light/DirectionalLight.h"
+
+class GLWindow;
+class Shader;
+class Mesh;
+class Texture;
+class Material;
+class Camera;
+class PointLight;
 
 class GLApplication {
 public:
@@ -24,21 +25,20 @@ private:
     void CreateScene();
     void RenderFrame();
     void DrawUI();
+    void OnResize(int w, int h);
 
 private:
-    std::unique_ptr<GLWindow> window_;
-    std::unique_ptr<Shader> shader_;
+    std::unique_ptr<GLWindow>                 window_;
+    std::unique_ptr<Shader>                   shader_;
+    std::vector<std::unique_ptr<Mesh>>        meshes_;
+    std::vector<std::unique_ptr<Texture>>     textures_;
+    std::vector<std::shared_ptr<Material>>    materials_;
+    std::shared_ptr<Camera>                   camera_;
 
-    std::shared_ptr<Camera> camera_;
-    glm::mat4 projection_{};
+    DirectionalLight                          dirLight_;
+    std::vector<std::shared_ptr<PointLight>>  pointLights_;
 
-    DirectionalLight dirLight_;
-    std::vector<std::shared_ptr<PointLight>> pointLights_;
-
-    std::vector<std::unique_ptr<Mesh>> meshes_;
-    std::vector<std::shared_ptr<Material>> materials_;
-    std::vector<std::unique_ptr<Texture>> textures_;
-
-    GameClock clock_;
-    bool gameMode_{true};
+    glm::mat4                                 projection_{1.0f};
+    GameClock                                 clock_;
+    bool                                      gameMode_{false};
 };

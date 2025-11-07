@@ -1,8 +1,9 @@
 
 #pragma once
-#include <GL/glew.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <array>
+#include <functional>
 #include <span>
 
 class GLWindow {
@@ -19,6 +20,8 @@ public:
     double GetDeltaX() const { return xChange_; }
     double GetDeltaY() const { return yChange_; }
     void ResetDelta() { xChange_ = yChange_ = 0.0; }
+
+    std::function<void(int,int)> onResize;
 
 private:
     static void HandleKeys(GLFWwindow* window, int key, int code, int action, int mode);

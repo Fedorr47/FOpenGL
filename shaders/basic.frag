@@ -1,4 +1,3 @@
-
 #version 330 core
 in vec2 TexCoord;
 in vec3 Normal;
@@ -13,7 +12,7 @@ struct Light {
 
 struct DirectionalLight {
     Light base;
-    vec3 direction; // "куда светит"
+    vec3 direction;
 };
 
 struct PointLight {
@@ -55,7 +54,7 @@ vec3 ApplyLight(Light light, vec3 L, vec3 N, vec3 V)
 
 vec4 CalcDirectional()
 {
-    vec3 L = -directionalLight.direction; // если хранится "куда светит"
+    vec3 L = -directionalLight.direction;
     vec3 V = eyePosition - FragPos;
     vec3 N = Normal;
     vec3 res = ApplyLight(directionalLight.base, L, N, V);

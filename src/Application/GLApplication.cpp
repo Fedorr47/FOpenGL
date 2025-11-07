@@ -17,6 +17,11 @@
 GLApplication::GLApplication(int width, int height, const char* title)
 {
     window_ = std::make_unique<GLWindow>(width, height, title);
+
+    clock_.reset();
+    //clock_.setFixedStep(1.0/60.0);
+    //clock_.setMaxFrameClamp(0.1);
+    //clock_.setMaxCatchUp(0.25); 
 }
 
 GLApplication::~GLApplication()
@@ -42,7 +47,7 @@ void GLApplication::CreateScene()
 
     // Shader
     shader_ = std::make_unique<Shader>();
-    if (!shader_->CreateFromFiles("shaders/basic.vert", "shaders/basic.frag")) {
+    if (!shader_->CreateFromFiles("../shaders/basic.vert", "../shaders/basic.frag")) {
         std::cerr << "Failed to create shader.\n";
     }
 
@@ -182,8 +187,7 @@ void GLApplication::Run()
     bool prevTab=false;
     while (!glfwWindowShouldClose(window_->GetWindow())) {
         glfwPollEvents();
-
-        // Edge detect TAB for mouse capture toggle
+        
         bool tab = window_->GetKeys()[GLFW_KEY_TAB];
         if (tab && !prevTab) {
             gameMode_ = !gameMode_;
@@ -193,7 +197,7 @@ void GLApplication::Run()
         prevTab = tab;
 
         clock_.beginFrame();
-        auto st = clock_.get();
+        auto clockState = clock_.get();
 
 #ifdef USE_IMGUI
         auto& io = ImGui::GetIO();
@@ -203,8 +207,14 @@ void GLApplication::Run()
         bool uiMouse = false, uiKey=false;
 #endif
 
-        if (gameMode_ && !uiKey) camera_->KeyControl(window_->GetKeys(), (float)st.deltaSec);
-        if (gameMode_ && !uiMouse) camera_->MouseControl(window_->GetDeltaX(), window_->GetDeltaY(), (float)st.deltaSec);
+        if (gameMode_ && !uiKey)
+        {
+            camera_->KeyControl(window_->GetKeys(), static_cast<float>(clockState.deltaSec));
+        }
+        if (gameMode_ && !uiMouse)
+        {
+            camera_->MouseControl(window_->GetDeltaX(), window_->GetDeltaY(), static_cast<float>(clockState.deltaSec));
+        }
         window_->ResetDelta();
 
         RenderFrame();

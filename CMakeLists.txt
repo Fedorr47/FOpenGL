@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(FOpenGL_Rebuilt LANGUAGES CXX)
+project(FOpenGL LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -73,5 +73,42 @@ add_custom_command(TARGET FOpenGL_app POST_BUILD
           "$<TARGET_FILE_DIR:FOpenGL_app>/shaders"
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-          "$<TARGET_FILE_DIR:FOpenGL_app>/assets"
-)
+          "$<TARGET_FILE_DIR:FOpenGL_app>/assets")
+
+# ---- tests ----
+if (WITH_TESTS)
+  include(CTest)
+  # Try vcpkg first
+  find_package(GTest CONFIG QUIET)
+  if (NOT TARGET GTest::gtest)
+    message(STATUS "GTest via package manager not found. Using FetchContent.")
+    include(FetchContent)
+    FetchContent_Declare(googletest
+      URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE) # MSVC CRT
+    FetchContent_MakeAvailable(googletest)
+  endif()
+
+  add_executable(FOpenGL_tests
+    tests/test_time.cpp
+  )
+  target_include_directories(FOpenGL_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_link_libraries(FOpenGL_tests PRIVATE FOpenGL glm::glm)
+
+  # Pick correct gtest targets (vcpkg or FetchContent)
+  if (TARGET GTest::gtest_main)
+    target_link_libraries(FOpenGL_tests PRIVATE GTest::gtest GTest::gtest_main)
+  else()
+    target_link_libraries(FOpenGL_tests PRIVATE gtest gtest_main)
+  endif()
+
+  target_compile_definitions(FOpenGL_tests PRIVATE _CRT_SECURE_NO_WARNINGS)
+
+  include(GoogleTest OPTIONAL RESULT_VARIABLE _has_gtest_mod)
+  if (_has_gtest_mod)
+    gtest_discover_tests(FOpenGL_tests)
+  else()
+    add_test(NAME fogl_tests COMMAND fogl_tests)
+  endif()
+endif()

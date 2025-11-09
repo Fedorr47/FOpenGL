@@ -1,1 +1,1 @@
-// Header-only methods
+#include "Light/PointLight.h"

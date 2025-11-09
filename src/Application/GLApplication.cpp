@@ -3,9 +3,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
-#include <stack>
-
 #include "Utils/RenderUtils.h"
+#include "Light/Utils/LightsFunctionLib.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -33,6 +32,28 @@ GLApplication::~GLApplication()
 #endif
 }
 
+void GLApplication::AddPointLights()
+{
+    PointLightProperties plp;
+    plp.Colour = {1,0,0}; plp.Position = {-3,1,-2.5};
+    pointLights_.push_back(std::make_shared<PointLight>(plp));
+    plp.Colour = {0,0,1}; plp.Position = { 3,1,-2.5};
+    pointLights_.push_back(std::make_shared<PointLight>(plp));
+}
+
+void GLApplication::AddSpotLights()
+{
+    SpotLightProperties slp{};
+    slp.Colour         = {0,1,1};
+    slp.Edge = 20.0f;
+    slp.Position  = {0.f, 5.f, -2.5f};
+    slp.Direction = {0.f, -1.f, 0.f}; 
+
+    spotLights_.push_back(std::make_shared<SpotLight>(slp));
+    //slp.Colour = {0,0,1}; slp.Position = {-4,5,-3};
+    //spotLights_.push_back(std::make_shared<SpotLight>(slp));
+}
+
 void GLApplication::CreateScene()
 {
     // Camera
@@ -54,17 +75,14 @@ void GLApplication::CreateScene()
     // Lights
     DirectionalLightProperties dlp;
     dlp.Colour = {1,1,1};
-    dlp.AmbientIntensity = 0.25f;
-    dlp.DiffuseIntensity = 0.8f;
-    dlp.Direction = { -0.5f, -1.0f, -0.3f };
+    dlp.AmbientIntensity = 0.1f;
+    dlp.DiffuseIntensity = 0.1f;
+    dlp.Direction = { -0.5f, -1.0f, -5.0f };
     dirLight_ = DirectionalLight(dlp);
     
-    PointLightProperties plp;
-    plp.Colour = {1,0,0}; plp.Position = {-3,1,0};
-    pointLights_.push_back(std::make_shared<PointLight>(plp));
-    plp.Colour = {0,0,1}; plp.Position = { 3,1,0};
-    pointLights_.push_back(std::make_shared<PointLight>(plp));
-
+    AddPointLights();
+    AddSpotLights();
+    
     // Geometry: a simple floor quad and a pyramid like in your example
     std::vector<float> pyramid = {
         // pos             // uv     // normal (placeholder; not used in VS, we compute per-vertex usually)
@@ -146,14 +164,11 @@ void GLApplication::RenderFrame()
     // Lights
     dirLight_.UseLight(shader_->DirLight);
     glUniform1i(shader_->UniPointLightCount, (GLint)pointLights_.size());
-    for (int i = 0; i<static_cast<int>(pointLights_.size()) && i < Shader::MAX_POINT_LIGHTS; ++i)
-    {
-        if (pointLights_[i] == nullptr)
-        {
-            continue;
-        }
-        pointLights_[i]->UseLight(shader_->PointLights[i]);
-    }
+    glUniform1i(shader_->UniSpotLightCount, (GLint)spotLights_.size());
+
+    ApplyLights<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>(pointLights_, *shader_);
+    ApplyLights<SpotLight, SpotLightUniformObjects, Shader::MAX_SPOT_LIGHTS>(spotLights_, *shader_);
+    
     // Draw pyramid
     glm::mat4 model(1.0f);
     model = glm::translate(model, {0,0,-2.5f});
@@ -174,8 +189,8 @@ void GLApplication::RenderFrame()
     model = glm::mat4(1.0f);
     model = glm::translate(model, {0,-2,-2.5f});
     glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
-    textures_[2]->Use(GL_TEXTURE0);
-    materials_[0]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
+    textures_[1]->Use(GL_TEXTURE0);
+    materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
     meshes_[1]->Draw();
 }
 

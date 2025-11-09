@@ -19,6 +19,12 @@ struct PointLightProperties : CommonLightProperties {
     float Exponent{0.032f};
 };
 
+struct SpotLightProperties : PointLightProperties {
+    glm::vec3 Direction{0.0f,1.0f,0.0f};
+    GLfloat Edge{1.0f};
+    GLfloat ProcEdge{1.0f};
+};
+
 // -------- locations uniform-fields in a shader --------
 struct CommonLightUniformObjects {
     GLint Colour{-1};
@@ -35,4 +41,10 @@ struct PointLightUniformObjects : CommonLightUniformObjects {
     GLint Constant{-1};
     GLint Linear{-1};
     GLint Exponent{-1};
+};
+
+struct SpotLightUniformObjects : PointLightUniformObjects {
+    GLint Direction{-1};
+    GLint ProcEdge{-1};
+    GLint Edge{-1};
 };

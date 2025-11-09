@@ -104,6 +104,23 @@ bool Shader::LinkAndReflect()
         PointLights[i].Linear           = get((b + "linear").c_str());
         PointLights[i].Exponent         = get((b + "exponent").c_str());
     }
+
+    UniSpotLightCount = get("spotLightCount");
+    for (int i = 0; i < MAX_SPOT_LIGHTS; ++i) {
+        std::string b = "spotLights[" + std::to_string(i) + "].";
+        
+        SpotLights[i].Colour           = get((b + "base.base.colour").c_str());
+        SpotLights[i].AmbientIntensity = get((b + "base.base.ambientIntensity").c_str());
+        SpotLights[i].DiffuseIntensity = get((b + "base.base.diffuseIntensity").c_str());
+        
+        SpotLights[i].Position         = get((b + "base.position").c_str());
+        SpotLights[i].Constant         = get((b + "base.constant").c_str());
+        SpotLights[i].Linear           = get((b + "base.linear").c_str());
+        SpotLights[i].Exponent         = get((b + "base.exponent").c_str());
+        
+        SpotLights[i].Direction        = get((b + "direction").c_str());
+        SpotLights[i].Edge             = get((b + "edge").c_str());
+    }
     
     return true;
 }

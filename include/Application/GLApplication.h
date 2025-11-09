@@ -10,6 +10,7 @@
 #include "Camera/Camera.h"
 #include "Light/DirectionalLight.h"
 #include "Light/PointLight.h"
+#include "Light/SpotLight.h"
 #include "Materials/Material.h"
 #include "Application/Time.h"
 
@@ -17,6 +18,8 @@ class GLApplication {
 public:
     GLApplication(int width, int height, const char* title);
     ~GLApplication();
+    void AddPointLights();
+    void AddSpotLights();
 
     void Run();
 
@@ -34,6 +37,7 @@ private:
 
     DirectionalLight dirLight_;
     std::vector<std::shared_ptr<PointLight>> pointLights_;
+    std::vector<std::shared_ptr<SpotLight>> spotLights_;
 
     std::vector<std::unique_ptr<Mesh>> meshes_;
     std::vector<std::shared_ptr<Material>> materials_;

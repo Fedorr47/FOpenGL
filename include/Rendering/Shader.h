@@ -23,6 +23,10 @@ struct PointLightUniform {
     GLint exponent = -1;
 };
 
+struct SpotLightUniforms : PointLightUniform {
+    GLint direction = -1;
+};
+
 class Shader {
 public:
     Shader();
@@ -41,10 +45,26 @@ public:
     GLint GetUniformSpecularIntensity() const { return uniSpecularIntensity_; }
     GLint GetUniformShininess() const { return uniShininess_; }
 
+    template<typename T>
+    T* GetUniformArray() {
+        if constexpr (std::is_same_v<T, PointLightUniformObjects>) {
+            return PointLights;
+        } else if constexpr (std::is_same_v<T, SpotLightUniformObjects>) {
+            return SpotLights;
+        } else {
+            return nullptr;
+        }
+    }
+
     DirectionalLightUniformObjects DirLight{};
+    
     static constexpr int MAX_POINT_LIGHTS = 8;
     PointLightUniformObjects PointLights[MAX_POINT_LIGHTS];
     GLint UniPointLightCount = -1;
+
+    static constexpr int MAX_SPOT_LIGHTS = 8;
+    SpotLightUniformObjects SpotLights[MAX_SPOT_LIGHTS];
+    GLint UniSpotLightCount = -1;
 
 private:
     bool AddShader(GLuint program, const std::string& src, GLenum type);

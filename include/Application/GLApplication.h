@@ -1,26 +1,32 @@
-
 #pragma once
+
+// General headers
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
-#include "Window/GLWindow.h"
-#include "Rendering/Shader.h"
-#include "Rendering/Texture.h"
-#include "Rendering/Mesh.h"
-#include "Camera/Camera.h"
-#include "Light/DirectionalLight.h"
-#include "Light/PointLight.h"
-#include "Light/SpotLight.h"
-#include "Materials/Material.h"
-#include "Application/Time.h"
+
+// forward declaration
+class GLWindow;
+class Shader;
+class Camera;
+class Mesh;
+class Material;
+class Texture;
+class PointLight;
+class SpotLight;
+class GameClock;
+class DirectionalLight;
 
 class GLApplication {
 public:
     GLApplication(int width, int height, const char* title);
     ~GLApplication();
+
+    //---------- Lights Start ----------//
     void AddPointLights();
     void AddSpotLights();
-
+    void CreateDirectionalLight();
+    //---------- Lights End  ----------//
     void Run();
 
 private:
@@ -33,9 +39,8 @@ private:
     std::unique_ptr<Shader> shader_;
 
     std::shared_ptr<Camera> camera_;
-    glm::mat4 projection_{};
 
-    DirectionalLight dirLight_;
+    std::shared_ptr<DirectionalLight> dirLight_;
     std::vector<std::shared_ptr<PointLight>> pointLights_;
     std::vector<std::shared_ptr<SpotLight>> spotLights_;
 
@@ -43,6 +48,8 @@ private:
     std::vector<std::shared_ptr<Material>> materials_;
     std::vector<std::unique_ptr<Texture>> textures_;
 
-    GameClock clock_;
+    std::unique_ptr<GameClock> clock_;
     bool gameMode_{true};
+
+    glm::mat4 projection_{};
 };

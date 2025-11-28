@@ -39,48 +39,53 @@ static constexpr AttenPreset kPresets[] = {
     {"Far",               1.0f, 0.09f,  0.032f},
 };
     
-inline void DrawPointLightsGui(std::span<std::shared_ptr<PointLight>> lights,
-                                      int   maxCount)
+inline void DrawPointLightsGui(std::vector<std::shared_ptr<PointLight>>& lights, int maxCount)
 {
-    if (!ImGui::Begin("Point Lights")) { ImGui::End(); return; }
-
-    int activeCount = lights.size();
-    activeCount = std::clamp(activeCount, 0, maxCount);
-    int newCount = activeCount;
-    ImGui::SliderInt("Active lights", &newCount, 0, maxCount);
-    if (newCount != activeCount) {
-        for (int i = activeCount; i < newCount; ++i) {
-            if (!lights[i]) lights[i] = std::make_shared<PointLight>(MakeDefaultPL());
+    if (!ImGui::Begin("Point Lights"))
+    {
+        ImGui::End();
+        return;
+    }
+    
+    int current = static_cast<int>(lights.size());
+    current = std::clamp(current, 0, maxCount);
+    
+    int desired = current;
+    ImGui::SliderInt("Active lights", &desired, 0, maxCount);
+    
+    if (desired != current) {
+        if (desired < current) {
+            lights.erase(lights.begin() + desired, lights.end());
+        } else {
+            while (static_cast<int>(lights.size()) < desired) {
+                lights.push_back(std::make_shared<PointLight>(MakeDefaultPL()));
+                lights.back() = std::make_shared<PointLight>(MakeDefaultPL());
+            }
         }
-        activeCount = newCount;
+        current = desired;
     }
 
     ImGui::Separator();
-
-    for (int i = 0; i < activeCount; ++i) {
-        if (!lights[i])
-        {
-            lights[i] = std::make_shared<PointLight>(MakeDefaultPL());
-        }
+    
+    for (int i = 0; i < current;) {
         auto& light = *lights[i];
 
-        if (ImGui::TreeNodeEx((void*)(intptr_t)i, ImGuiTreeNodeFlags_DefaultOpen,
-                              "PointLight %d", i))
+        ImGui::PushID(i);
+        const bool open = ImGui::TreeNodeEx("PointLight", ImGuiTreeNodeFlags_DefaultOpen, "PointLight %d", i);
+        if (open)
         {
             auto props = light.GetProperties();
 
             float col[3] = { props.Colour.r, props.Colour.g, props.Colour.b };
-            if (ImGui::ColorEdit3("Colour", col))
+            if (ImGui::ColorEdit3("Colour", col)) {
                 props.Colour = { col[0], col[1], col[2] };
-
+            }
 
             ImGui::SliderFloat("Ambient", &props.AmbientIntensity, 0.0f, 2.0f, "%.2f");
             ImGui::SliderFloat("Diffuse", &props.DiffuseIntensity, 0.0f, 5.0f, "%.2f");
 
-
             ImGui::DragFloat3("Position", &props.Position.x, 0.05f);
             
-            int preset = -1;
             if (ImGui::BeginCombo("Attenuation preset", "Select…")) {
                 for (int p = 0; p < (int)std::size(kPresets); ++p) {
                     if (ImGui::Selectable(kPresets[p].name)) {
@@ -91,34 +96,55 @@ inline void DrawPointLightsGui(std::span<std::shared_ptr<PointLight>> lights,
                 }
                 ImGui::EndCombo();
             }
-            (void)preset;
 
-            ImGui::InputFloat("Constant", &props.Constant, 0.01f, 0.1f, "%.3f");
-            ImGui::InputFloat("Linear",   &props.Linear,   0.001f, 0.01f, "%.4f");
-            ImGui::InputFloat("Quadratic",&props.Exponent, 0.0001f,0.001f,"%.5f");
-            
+            ImGui::InputFloat("Constant",  &props.Constant,  0.01f,  0.1f,  "%.3f");
+            ImGui::InputFloat("Linear",    &props.Linear,    0.001f, 0.01f, "%.4f");
+            ImGui::InputFloat("Quadratic", &props.Exponent,  0.0001f,0.001f,"%.5f");
+
             props.Constant = std::max(props.Constant, 0.0f);
             props.Linear   = std::max(props.Linear,   0.0f);
             props.Exponent = std::max(props.Exponent, 0.0f);
-            
+
             if (ImGui::Button("Reset")) {
                 props = MakeDefaultPL();
             }
             ImGui::SameLine();
+            bool deleted = false;
             if (ImGui::Button("Delete")) {
-                if (i != activeCount - 1)
-                    std::swap(lights[i], lights[activeCount - 1]);
-                lights[activeCount - 1].reset();
-                --activeCount;
-                ImGui::TreePop();
-                continue;
+                lights.erase(lights.begin() + i);
+                --current;
+                deleted = true;
             }
             
-            light.SetProperties(props);
+            if (!deleted) {
+                light.SetProperties(props);
+                ++i;
+            }
 
             ImGui::TreePop();
         }
+        else
+        {
+            ImGui::SameLine();
+            if (ImGui::Button("Delete")) {
+                lights.erase(lights.begin() + i);
+                --current;
+                ImGui::PopID();
+                continue;
+            }
+            ++i;
+        }
+        ImGui::PopID();
         ImGui::Separator();
+    }
+    
+    if (ImGui::Button("Add") && static_cast<int>(lights.size()) < maxCount) {
+        lights.push_back(std::make_shared<PointLight>(MakeDefaultPL()));
+    }
+    
+    ImGui::SameLine();
+    if (ImGui::Button("Clear")) {
+        lights.clear();
     }
 
     ImGui::End();

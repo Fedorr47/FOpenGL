@@ -25,7 +25,9 @@ public:
     void UseLight(const SpotLightUniformObjects& u) const override {
         Base::UseLight(u);
         
-        if (u.Position  != (GLuint)-1) glUniform3f(u.Position,  Props.Position.x, Props.Position.y, Props.Position.z);
+        if (u.Position  != (GLuint)-1) glUniform3f(u.Position,  Props.Position.x, Props.Position.
+
+        y, Props.Position.z);
         if (u.Constant  != (GLuint)-1) glUniform1f(u.Constant,  Props.Constant);
         if (u.Linear    != (GLuint)-1) glUniform1f(u.Linear,    Props.Linear);
         if (u.Exponent  != (GLuint)-1) glUniform1f(u.Exponent,  Props.Exponent);

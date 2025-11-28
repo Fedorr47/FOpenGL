@@ -2,7 +2,7 @@
 #include "Application/Time.h"
 using namespace std::chrono;
 
-void GameClock::reset() {
+void GameClock::resetTime() {
     last_ = clock::now();
     acc_ = 0.0;
     state_ = {};

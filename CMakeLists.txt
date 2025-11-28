@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(FOpenGL LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
 
 option(WITH_IMGUI "Build with Dear ImGui UI layer" ON)
 

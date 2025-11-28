@@ -1,10 +1,22 @@
-
 #include "Application/GLApplication.h"
+
+// General headers
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
 #include "Utils/RenderUtils.h"
 #include "Light/Utils/LightsFunctionLib.h"
+
+// Dependency headers
+#include "Window/GLWindow.h"
+#include "Rendering/Shader.h"
+#include "Rendering/Texture.h"
+#include "Rendering/Mesh.h"
+#include "Camera/Camera.h"
+#include "Light/DirectionalLight.h"
+#include "Light/PointLight.h"
+#include "Light/SpotLight.h"
+#include "Materials/Material.h"
+#include "Application/Time.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -16,11 +28,11 @@
 GLApplication::GLApplication(int width, int height, const char* title)
 {
     window_ = std::make_unique<GLWindow>(width, height, title);
-
-    clock_.reset();
+    clock_ = std::make_unique<GameClock>();
+    clock_->resetTime();
     //clock_.setFixedStep(1.0/60.0);
     //clock_.setMaxFrameClamp(0.1);
-    //clock_.setMaxCatchUp(0.25); 
+    //clock_.setMaxCatchUp(0.25);
 }
 
 GLApplication::~GLApplication()
@@ -35,16 +47,21 @@ GLApplication::~GLApplication()
 void GLApplication::AddPointLights()
 {
     PointLightProperties plp;
-    plp.Colour = {1,0,0}; plp.Position = {-3,1,-2.5};
+
+    // TODO: Point lights needed to be optimized 
+    plp.Colour = {1,0,0};
+    plp.Position = {-3,1,-2.5};
     pointLights_.push_back(std::make_shared<PointLight>(plp));
-    plp.Colour = {0,0,1}; plp.Position = { 3,1,-2.5};
+    
+    plp.Colour = {0,0,1};
+    plp.Position = { 3,1,-2.5};
     pointLights_.push_back(std::make_shared<PointLight>(plp));
 }
 
 void GLApplication::AddSpotLights()
 {
     SpotLightProperties slp{};
-    slp.Colour         = {0,1,1};
+    slp.Colour= {0,1,1};
     slp.Edge = 20.0f;
     slp.Position  = {0.f, 5.f, -2.5f};
     slp.Direction = {0.f, -1.f, 0.f}; 
@@ -52,6 +69,17 @@ void GLApplication::AddSpotLights()
     spotLights_.push_back(std::make_shared<SpotLight>(slp));
     //slp.Colour = {0,0,1}; slp.Position = {-4,5,-3};
     //spotLights_.push_back(std::make_shared<SpotLight>(slp));
+}
+
+void GLApplication::CreateDirectionalLight()
+{
+    // Lights
+    DirectionalLightProperties dlp;
+    dlp.Colour = {1,1,1};
+    dlp.AmbientIntensity = 0.1f;
+    dlp.DiffuseIntensity = 0.1f;
+    dlp.Direction = { -0.5f, -1.0f, -5.0f };
+    dirLight_ = std::make_shared<DirectionalLight>(DirectionalLight(dlp));
 }
 
 void GLApplication::CreateScene()
@@ -63,27 +91,21 @@ void GLApplication::CreateScene()
         -90.0f, 0.0f, 5.0f, 0.1f);
 
     projection_ = glm::perspective(glm::radians(45.0f),
-        float(window_->GetBufferWidth())/float(window_->GetBufferHeight()),
+        static_cast<float>(window_->GetBufferWidth())/static_cast<float>(window_->GetBufferHeight()),
         0.1f, 100.0f);
 
     // Shader
     shader_ = std::make_unique<Shader>();
     if (!shader_->CreateFromFiles("../shaders/basic.vert", "../shaders/basic.frag")) {
-        std::cerr << "Failed to create shader.\n";
+        throw std::exception("Failed to create shader.\n");
     }
 
     // Lights
-    DirectionalLightProperties dlp;
-    dlp.Colour = {1,1,1};
-    dlp.AmbientIntensity = 0.1f;
-    dlp.DiffuseIntensity = 0.1f;
-    dlp.Direction = { -0.5f, -1.0f, -5.0f };
-    dirLight_ = DirectionalLight(dlp);
-    
+    CreateDirectionalLight();
     AddPointLights();
     AddSpotLights();
     
-    // Geometry: a simple floor quad and a pyramid like in your example
+    // Geometry: a simple floor quad and a pyramid
     std::vector<float> pyramid = {
         // pos             // uv     // normal (placeholder; not used in VS, we compute per-vertex usually)
         -1.f,-1.f,-0.6f,   0,0,     0,0,0,
@@ -94,7 +116,8 @@ void GLApplication::CreateScene()
     std::vector<unsigned> pidx = {0,3,1, 1,3,2, 2,3,0, 0,1,2};
     ComputeAverageNormals(pyramid, pidx, 8, 5);
 
-    auto m1 = std::make_unique<Mesh>(); m1->Create(pyramid, pidx, 8);
+    auto m1 = std::make_unique<Mesh>();
+    m1->Create(pyramid, pidx, 8);
     meshes_.push_back(std::move(m1));
 
     std::vector<float> floor = {
@@ -110,14 +133,20 @@ void GLApplication::CreateScene()
     m2->Create(floor, fidx, 8);
     meshes_.push_back(std::move(m2));
 
-    // Textures / materials
+    // Textures
     auto tex1 = std::make_unique<Texture>("assets/textures/brick.png");
-    tex1->Load(); textures_.push_back(std::move(tex1));
+    tex1->Load();
+    textures_.push_back(std::move(tex1));
+    
     auto tex2 = std::make_unique<Texture>("assets/textures/dirt.png");
-    tex2->Load(); textures_.push_back(std::move(tex2));
+    tex2->Load();
+    textures_.push_back(std::move(tex2));
+    
     auto tex3 = std::make_unique<Texture>("assets/textures/plain.png");
-    tex3->Load(); textures_.push_back(std::move(tex3));
+    tex3->Load();
+    textures_.push_back(std::move(tex3));
 
+    // Materials
     materials_.push_back(std::make_shared<Material>(1.0f,64.0f)); // shiny
     materials_.push_back(std::make_shared<Material>(0.3f,8.0f));  // dull
 
@@ -138,13 +167,15 @@ void GLApplication::DrawUI()
     ImGui::NewFrame();
 
     ImGui::Begin("Info");
-    ImGui::Text("FPS: %.1f", clock_.get().fps);
+    ImGui::Text("FPS: %.1f", clock_->getState().fps);
     ImGui::Text("WASD/mouse; TAB toggles mouse capture");
     ImGui::End();
 
-    ImGuiHandler::DrawDirectionalLightGui(dirLight_);
+    ImGuiHandler::DrawDirectionalLightGui(*dirLight_);
     int CurrentLightPointsNum = Shader::MAX_POINT_LIGHTS;
-    ImGuiHandler::DrawPointLightsGui(pointLights_,(int)Shader::MAX_POINT_LIGHTS);
+    ImGuiHandler::DrawPointLightsGui(
+        pointLights_,
+        static_cast<int>(Shader::MAX_POINT_LIGHTS));
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -162,22 +193,21 @@ void GLApplication::RenderFrame()
     glUniform3f(shader_->GetUniformEyePos(), camera_->GetPosition().x, camera_->GetPosition().y, camera_->GetPosition().z);
 
     // Lights
-    dirLight_.UseLight(shader_->DirLight);
-    glUniform1i(shader_->UniPointLightCount, (GLint)pointLights_.size());
-    glUniform1i(shader_->UniSpotLightCount, (GLint)spotLights_.size());
+    dirLight_->UseLight(shader_->DirLight);
+    glUniform1i(shader_->UniPointLightCount, static_cast<GLint>(pointLights_.size()));
+    glUniform1i(shader_->UniSpotLightCount, static_cast<GLint>(spotLights_.size()));
 
     ApplyLights<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>(pointLights_, *shader_);
     ApplyLights<SpotLight, SpotLightUniformObjects, Shader::MAX_SPOT_LIGHTS>(spotLights_, *shader_);
     
-    // Draw pyramid
+    // Draw pyramids
     glm::mat4 model(1.0f);
     model = glm::translate(model, {0,0,-2.5f});
     glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
     textures_[0]->Use(GL_TEXTURE0);
     materials_[0]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
     meshes_[0]->Draw();
-
-    // upper pyramid
+    
     model = glm::mat4(1.0f);
     model = glm::translate(model, {0,4,-2.5f});
     glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
@@ -185,7 +215,7 @@ void GLApplication::RenderFrame()
     materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
     meshes_[0]->Draw();
 
-    // floor
+    // Floor
     model = glm::mat4(1.0f);
     model = glm::translate(model, {0,-2,-2.5f});
     glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
@@ -197,7 +227,7 @@ void GLApplication::RenderFrame()
 void GLApplication::Run()
 {
     CreateScene();
-    clock_.reset();
+    clock_->resetTime();
 
     bool prevTab=false;
     while (!glfwWindowShouldClose(window_->GetWindow())) {
@@ -211,8 +241,8 @@ void GLApplication::Run()
         }
         prevTab = tab;
 
-        clock_.beginFrame();
-        auto clockState = clock_.get();
+        clock_->beginFrame();
+        const TimeState& clockState = clock_->getState();
 
 #ifdef USE_IMGUI
         auto& io = ImGui::GetIO();

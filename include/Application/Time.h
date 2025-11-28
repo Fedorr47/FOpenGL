@@ -47,7 +47,7 @@ public:
         return std::chrono::duration<double>(typename clock::duration(1)).count();
     }
     
-    void reset();
+    void resetTime();
     void beginFrame(std::optional<double> externalUnscaledDtSec = std::nullopt);
     void setPaused(bool bPaused) { state_.paused = bPaused; }
     void setFixedStep(double sec);
@@ -59,7 +59,7 @@ public:
     double getMaxFrameClamp() const { return maxUnscaledFrameDeltaSec_; }
     double getMaxCatchUp()    const { return catchUpBudgetSec_; }
     
-    const TimeState& get() const { return state_; }
+    const TimeState& getState() const { return state_; }
 
     void stepOnce(double stepSec) { acc_ += std::max(0.0, stepSec);}
     template<FixedTickFn F>

@@ -197,8 +197,9 @@ void GLApplication::RenderFrame()
     glUniform1i(shader_->UniPointLightCount, static_cast<GLint>(pointLights_.size()));
     glUniform1i(shader_->UniSpotLightCount, static_cast<GLint>(spotLights_.size()));
 
-    ApplyLights<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>(pointLights_, *shader_);
-    ApplyLights<SpotLight, SpotLightUniformObjects, Shader::MAX_SPOT_LIGHTS>(spotLights_, *shader_);
+    LightsApplier<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>::ApplyLights(pointLights_, *shader_);
+    spotLights_[0]->SetFlash(camera_->GetPosition(), camera_->GetDirection());
+    LightsApplier<SpotLight, SpotLightUniformObjects, Shader::MAX_SPOT_LIGHTS>::ApplyLights(spotLights_, *shader_);
     
     // Draw pyramids
     glm::mat4 model(1.0f);

@@ -1,1 +1,1 @@
-#include "Light/PointLight.h"
+// Intentionally empty: header-only light properties

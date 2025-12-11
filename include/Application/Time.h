@@ -4,6 +4,7 @@
 #include <concepts>
 #include <optional>
 
+//
 struct TimeState {
     double totalSec{0.0};
     double deltaSec{0.0};
@@ -55,7 +56,7 @@ public:
     void setMaxFrameClamp(double sec) { maxUnscaledFrameDeltaSec_ = std::max(1e-6, sec); }
     void setMaxCatchUp(double sec)    { catchUpBudgetSec_    = std::max(0.0,  sec); }
     
-    double getFixedStep()     const { return fixedStep_; }
+    double getFixedStep()     const { return fixedStep_.count() ; }
     double getMaxFrameClamp() const { return maxUnscaledFrameDeltaSec_; }
     double getMaxCatchUp()    const { return catchUpBudgetSec_; }
     
@@ -74,7 +75,7 @@ private:
     double acc_{0.0};
     TimeState state_{};
     
-    double fixedStep_{1.0/60.0};
+    dur fixedStep_{1.0/60.0};
     double maxUnscaledFrameDeltaSec_{0.100};
     double catchUpBudgetSec_{0.250};
 

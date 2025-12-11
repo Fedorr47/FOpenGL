@@ -5,13 +5,20 @@
 
 class Camera {
 public:
-    Camera(glm::vec3 pos, glm::vec3 up, float yawDeg, float pitchDeg, float moveSpeed, float turnSpeed);
+    Camera(
+        glm::vec3 pos,
+        glm::vec3 up,
+        float yawDeg,
+        float pitchDeg,
+        float moveSpeed,
+        float turnSpeed);
 
     void KeyControl(std::span<const bool> keys, float dt);
     void MouseControl(double deltaX, double deltaY, float dt);
 
     glm::mat4 GetViewMatrix() const;
     const glm::vec3& GetPosition() const { return position_; }
+    const glm::vec3& GetDirection() const { return glm::normalize(front_); }
 
 private:
     void UpdateVectors();

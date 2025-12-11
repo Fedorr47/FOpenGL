@@ -59,5 +59,5 @@ void GameClock::setFixedStep(double sec)
     }
     
     sec = std::max(sec, minStep);
-    fixedStep_ = sec;
+    fixedStep_ = dur{sec};
 }

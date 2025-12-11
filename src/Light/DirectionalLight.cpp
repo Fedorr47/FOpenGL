@@ -1,1 +1,1 @@
-// Header-only methods
+// Intentionally empty: header-only light properties

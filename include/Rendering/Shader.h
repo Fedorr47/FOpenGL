@@ -32,8 +32,8 @@ public:
     Shader();
     ~Shader();
 
-    bool CreateFromSource(const std::string& vs, const std::string& fs);
-    bool CreateFromFiles(const std::filesystem::path& vs, const std::filesystem::path& fs);
+    bool CreateFromSource(const std::string& vertexShader, const std::string& fragmentShader);
+    bool CreateFromFiles(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
 
     void Use() const;
     void Clear();

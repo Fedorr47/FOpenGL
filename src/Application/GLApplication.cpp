@@ -9,14 +9,17 @@
 // Dependency headers
 #include "Window/GLWindow.h"
 #include "Rendering/Shader.h"
-#include "Rendering/Texture.h"
-#include "Rendering/Mesh.h"
+#include "Texture//Texture.h"
+#include "Model//Mesh.h"
 #include "Camera/Camera.h"
 #include "Light/DirectionalLight.h"
 #include "Light/PointLight.h"
 #include "Light/SpotLight.h"
 #include "Materials/Material.h"
 #include "Application/Time.h"
+#include "Model/Model.h"
+// Assimp
+#include "assimp/Importer.hpp"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -30,6 +33,8 @@ GLApplication::GLApplication(int width, int height, const char* title)
     window_ = std::make_unique<GLWindow>(width, height, title);
     clock_ = std::make_unique<GameClock>();
     clock_->resetTime();
+
+    assimpImporter = std::make_unique<Assimp::Importer>();
     //clock_.setFixedStep(1.0/60.0);
     //clock_.setMaxFrameClamp(0.1);
     //clock_.setMaxCatchUp(0.25);
@@ -80,6 +85,12 @@ void GLApplication::CreateDirectionalLight()
     dlp.DiffuseIntensity = 0.1f;
     dlp.Direction = { -0.5f, -1.0f, -5.0f };
     dirLight_ = std::make_shared<DirectionalLight>(DirectionalLight(dlp));
+}
+
+void GLApplication::AddModels()
+{
+    models_.push_back(std::make_shared<Model>());
+    models_.back()->LoadModel("../assets/models/Seahawk.obj");
 }
 
 void GLApplication::CreateScene()
@@ -135,20 +146,22 @@ void GLApplication::CreateScene()
 
     // Textures
     auto tex1 = std::make_unique<Texture>("assets/textures/brick.png");
-    tex1->Load();
+    tex1->LoadA();
     textures_.push_back(std::move(tex1));
     
     auto tex2 = std::make_unique<Texture>("assets/textures/dirt.png");
-    tex2->Load();
+    tex2->LoadA();
     textures_.push_back(std::move(tex2));
     
     auto tex3 = std::make_unique<Texture>("assets/textures/plain.png");
-    tex3->Load();
+    tex3->LoadA();
     textures_.push_back(std::move(tex3));
 
     // Materials
     materials_.push_back(std::make_shared<Material>(1.0f,64.0f)); // shiny
     materials_.push_back(std::make_shared<Material>(0.3f,8.0f));  // dull
+
+    AddModels();
 
 #ifdef USE_IMGUI
     IMGUI_CHECKVERSION();
@@ -223,6 +236,14 @@ void GLApplication::RenderFrame()
     textures_[1]->Use(GL_TEXTURE0);
     materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
     meshes_[1]->Draw();
+
+    // Hawk
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, {-2,-1,0.0f});
+    model = glm::scale(model, {0.1,0.1,0.1f});
+    glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
+    materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
+    models_[0]->Render();
 }
 
 void GLApplication::Run()

@@ -7,49 +7,67 @@
 Shader::Shader() {}
 Shader::~Shader() { Clear(); }
 
-bool Shader::CreateFromSource(const std::string& vs, const std::string& fs)
+bool Shader::CreateFromSource(const std::string& vertexShader, const std::string& fragmentShader)
 {
     program_ = glCreateProgram();
-    if (!program_) { std::cerr << "glCreateProgram failed\n"; return false; }
+    if (!program_)
+    {
+        //std::cerr << "glCreateProgram failed\n";
+        return false;
+    }
 
-    if (!AddShader(program_, vs, GL_VERTEX_SHADER)) return false;
-    if (!AddShader(program_, fs, GL_FRAGMENT_SHADER)) return false;
+    if (!AddShader(program_, vertexShader, GL_VERTEX_SHADER))
+    {
+        return false;
+    }
+    if (!AddShader(program_, fragmentShader, GL_FRAGMENT_SHADER))
+    {
+        return false;
+    }
     return LinkAndReflect();
 }
 
-bool Shader::CreateFromFiles(const std::filesystem::path& vs, const std::filesystem::path& fs)
+bool Shader::CreateFromFiles(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader)
 {
-    return CreateFromSource(ReadFile(vs), ReadFile(fs));
+    return CreateFromSource(ReadFile(vertexShader), ReadFile(fragmentShader));
 }
 
 std::string Shader::ReadFile(const std::filesystem::path& path)
 {
     std::filesystem::path p = path.is_absolute() ? path : (std::filesystem::current_path() / path);
-    std::ifstream f(p, std::ios::binary);
-    if (!f) throw std::runtime_error("Failed to open file: " + p.string());
-    std::ostringstream ss; ss << f.rdbuf();
+    std::ifstream shaderFile(p, std::ios::binary);
+    if (!shaderFile)
+    {
+        throw std::runtime_error("Failed to open file: " + p.string());
+    }
+    std::ostringstream ss;
+    ss << shaderFile.rdbuf();
     return ss.str();
 }
 
 bool Shader::AddShader(GLuint program, const std::string& src, GLenum type)
 {
-    GLuint sh = glCreateShader(type);
-    if (!sh) return false;
-    const GLchar* ptr = src.data();
-    GLint len = static_cast<GLint>(src.size());
-    glShaderSource(sh, 1, &ptr, &len);
-    glCompileShader(sh);
-    GLint ok = GL_FALSE;
-    glGetShaderiv(sh, GL_COMPILE_STATUS, &ok);
-    if (!ok) {
-        char log[2048]; GLsizei n=0;
-        glGetShaderInfoLog(sh, 2048, &n, log);
-        std::cerr << "Compile error (" << type << "):\n" << log << "\n";
-        glDeleteShader(sh);
+    GLuint shaderProgramm = glCreateShader(type);
+    if (!shaderProgramm)
+    {
         return false;
     }
-    glAttachShader(program, sh);
-    glDeleteShader(sh); // safe after attach
+    const GLchar* ptr = src.data();
+    GLint len = static_cast<GLint>(src.size());
+    glShaderSource(shaderProgramm, 1, &ptr, &len);
+    glCompileShader(shaderProgramm);
+    GLint ok = GL_FALSE;
+    glGetShaderiv(shaderProgramm, GL_COMPILE_STATUS, &ok);
+    if (!ok)
+        {
+        char log[2048]; GLsizei n=0;
+        glGetShaderInfoLog(shaderProgramm, 2048, &n, log);
+        //std::cerr << "Compile error (" << type << "):\n" << log << "\n";
+        glDeleteShader(shaderProgramm);
+        return false;
+    }
+    glAttachShader(program, shaderProgramm);
+    glDeleteShader(shaderProgramm); // safe after attach
     return true;
 }
 
@@ -58,19 +76,21 @@ bool Shader::LinkAndReflect()
     glLinkProgram(program_);
     GLint ok = GL_FALSE;
     glGetProgramiv(program_, GL_LINK_STATUS, &ok);
-    if (!ok) {
+    if (!ok)
+    {
         char log[2048]; GLsizei n=0;
         glGetProgramInfoLog(program_, 2048, &n, log);
-        std::cerr << "Link error:\n" << log << "\n";
+        //std::cerr << "Link error:\n" << log << "\n";
         glDeleteProgram(program_); program_=0;
         return false;
     }
     glValidateProgram(program_);
     glGetProgramiv(program_, GL_VALIDATE_STATUS, &ok);
-    if (!ok) {
+    if (!ok)
+    {
         char log[2048]; GLsizei n=0;
         glGetProgramInfoLog(program_, 2048, &n, log);
-        std::cerr << "Validate error:\n" << log << "\n";
+        //std::cerr << "Validate error:\n" << log << "\n";
     }
 
     auto get = [&](const char* n)->GLint {

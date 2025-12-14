@@ -10,7 +10,7 @@ public:
 
     void Create(const std::vector<float>& vertices,
                 const std::vector<unsigned int>& indices,
-                unsigned int strideFloats);
+                unsigned int strideFloats = 8);
 
     void Draw() const;
     void Clear();

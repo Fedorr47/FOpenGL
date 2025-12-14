@@ -1,11 +1,11 @@
 
-#include "Rendering/Mesh.h"
+#include "Model//Mesh.h"
 
 Mesh::~Mesh(){ Clear(); }
 
 void Mesh::Create(const std::vector<float>& vertices,
                   const std::vector<unsigned int>& indices,
-                  unsigned int strideFloats)
+                  unsigned int strideFloats /*= 8*/)
 {
     indexCount_ = static_cast<GLsizei>(indices.size());
 

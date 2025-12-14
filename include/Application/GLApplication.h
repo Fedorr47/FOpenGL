@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
+#include <Model/Model.h>
 
 // forward declaration
 class GLWindow;
@@ -16,6 +17,12 @@ class PointLight;
 class SpotLight;
 class GameClock;
 class DirectionalLight;
+class Model;
+
+namespace Assimp
+{
+    class Importer;
+}
 
 class GLApplication {
 public:
@@ -28,6 +35,8 @@ public:
     void CreateDirectionalLight();
     //---------- Lights End  ----------//
     void Run();
+
+    void AddModels();
 
 private:
     void CreateScene();
@@ -47,6 +56,10 @@ private:
     std::vector<std::unique_ptr<Mesh>> meshes_;
     std::vector<std::shared_ptr<Material>> materials_;
     std::vector<std::unique_ptr<Texture>> textures_;
+
+    std::vector<std::shared_ptr<Model>> models_;
+
+     std::unique_ptr<Assimp::Importer> assimpImporter;
 
     std::unique_ptr<GameClock> clock_;
     bool gameMode_{true};

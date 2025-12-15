@@ -90,7 +90,7 @@ void GLApplication::CreateDirectionalLight()
 void GLApplication::AddModels()
 {
     models_.push_back(std::make_shared<Model>());
-    models_.back()->LoadModel("../assets/models/Seahawk.obj");
+    models_.back()->LoadModel("../assets/models/Intergalactic_Spaceship-(Wavefront).obj");
 }
 
 void GLApplication::CreateScene()
@@ -195,6 +195,22 @@ void GLApplication::DrawUI()
 #endif
 }
 
+void GLApplication::DrawPyramids(glm::mat4& model)
+{
+    model = glm::translate(model, {0,0,-2.5f});
+    glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
+    textures_[0]->Use(GL_TEXTURE0);
+    materials_[0]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
+    meshes_[0]->Draw();
+    
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, {0,4,-2.5f});
+    glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
+    textures_[1]->Use(GL_TEXTURE0);
+    materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
+    meshes_[0]->Draw();
+}
+
 void GLApplication::RenderFrame()
 {
     glClearColor(0,0,0,1);
@@ -216,18 +232,7 @@ void GLApplication::RenderFrame()
     
     // Draw pyramids
     glm::mat4 model(1.0f);
-    model = glm::translate(model, {0,0,-2.5f});
-    glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
-    textures_[0]->Use(GL_TEXTURE0);
-    materials_[0]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
-    meshes_[0]->Draw();
-    
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, {0,4,-2.5f});
-    glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
-    textures_[1]->Use(GL_TEXTURE0);
-    materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
-    meshes_[0]->Draw();
+    //DrawPyramids();
 
     // Floor
     model = glm::mat4(1.0f);
@@ -237,10 +242,10 @@ void GLApplication::RenderFrame()
     materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
     meshes_[1]->Draw();
 
-    // Hawk
+    // spaceship
     model = glm::mat4(1.0f);
     model = glm::translate(model, {-2,-1,0.0f});
-    model = glm::scale(model, {0.1,0.1,0.1f});
+    //model = glm::scale(model, {0.01,0.01,0.01f});
     glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
     materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
     models_[0]->Render();
@@ -258,9 +263,9 @@ void GLApplication::Run()
         bool tab = window_->GetKeys()[GLFW_KEY_TAB];
         if (tab && !prevTab) {
             gameMode_ = !gameMode_;
-            glfwSetInputMode(window_->GetWindow(), GLFW_CURSOR,
-                gameMode_ ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         }
+        SetGameInputMode(gameMode_);
+
         prevTab = tab;
 
         clock_->beginFrame();
@@ -288,5 +293,29 @@ void GLApplication::Run()
         DrawUI();
 
         glfwSwapBuffers(window_->GetWindow());
+    }
+}
+
+void GLApplication::SetGameInputMode(bool enabled)
+{
+    GLFWwindow* window = window_->GetWindow();
+
+#ifdef USE_IMGUI
+    auto& io = ImGui::GetIO();
+    if (enabled) {
+        io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    } else {
+        io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+        io.MouseDrawCursor = false;
+    }
+#endif
+
+    if (enabled) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        if (glfwRawMouseMotionSupported())
+            glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    } else {
+        glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }

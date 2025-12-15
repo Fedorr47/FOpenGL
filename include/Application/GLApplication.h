@@ -35,6 +35,7 @@ public:
     void CreateDirectionalLight();
     //---------- Lights End  ----------//
     void Run();
+    void SetGameInputMode(bool enabled);
 
     void AddModels();
 
@@ -42,6 +43,7 @@ private:
     void CreateScene();
     void RenderFrame();
     void DrawUI();
+    void DrawPyramids(glm::mat4& model);
 
 private:
     std::unique_ptr<GLWindow> window_;

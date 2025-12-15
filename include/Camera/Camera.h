@@ -18,7 +18,7 @@ public:
 
     glm::mat4 GetViewMatrix() const;
     const glm::vec3& GetPosition() const { return position_; }
-    const glm::vec3& GetDirection() const { return glm::normalize(front_); }
+    const glm::vec3 GetDirection() const { return glm::normalize(front_); }
 
 private:
     void UpdateVectors();

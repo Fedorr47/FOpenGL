@@ -20,15 +20,18 @@ public:
     double GetDeltaY() const { return yChange_; }
     void ResetDelta() { xChange_ = yChange_ = 0.0; }
 
+    bool IsResized() const { return resized_; }
+    void SetResized(bool resized) { resized_ = resized; }
+
 private:
     static void HandleKeys(GLFWwindow* window, int key, int code, int action, int mode);
     static void HandleMouse(GLFWwindow* window, double xPos, double yPos);
     void CreateCallbacks();
-
-private:
+    
     GLFWwindow* window_ = nullptr;
     int bufferWidth_ = 0;
     int bufferHeight_ = 0;
+    bool resized_ = false;
 
     std::array<bool, 1024> keys_{};
     double lastX_ = 0.0, lastY_ = 0.0;

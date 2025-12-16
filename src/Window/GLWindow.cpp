@@ -41,6 +41,7 @@ GLWindow::GLWindow(int width, int height, const char* title)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
 
+    glfwSetWindowUserPointer(window_, this);
     gWindowForCallbacks = this;
     CreateCallbacks();
 }
@@ -62,6 +63,19 @@ void GLWindow::CreateCallbacks()
     });
     glfwSetCursorPosCallback(window_, [](GLFWwindow* win, double x, double y){
         if (gWindowForCallbacks) HandleMouse(win, x, y);
+    });
+
+    glfwSetFramebufferSizeCallback(window_, [](GLFWwindow* win, int width, int height)
+    {
+        auto* self = static_cast<GLWindow*>(glfwGetWindowUserPointer(win));
+        if (!self)
+        {
+            return;
+        }
+
+        self->bufferWidth_  = width;
+        self->bufferHeight_ = height;
+        self->resized_ = true;
     });
 }
 

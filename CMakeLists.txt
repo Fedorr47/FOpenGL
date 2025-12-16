@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
 project(FOpenGL LANGUAGES CXX)
+include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
+
+option(USE_VCPKG "Prefer vcpkg packages when available" ON)
+option(USE_SUBMODULES "Use git submodules fallback when vcpkg is unavailable" ON)
 
 option(WITH_IMGUI           "Build with Dear ImGui UI layer"    ON)
 option(WITH_ASAN            "Enable AddressSanitizer"           OFF)
@@ -12,10 +16,70 @@ option(WITH_CLANG_TIDY      "Run clang-tidy"                    OFF)
 option(WITH_MSVC_ANALYZE    "Enable MSVC code analysis"         OFF)
 
 # --- deps (vcpkg) ---
-find_package(glfw3 CONFIG REQUIRED) # vcpkg target: glfw 
-find_package(GLEW CONFIG REQUIRED) # vcpkg target: GLEW::GLEW 
-find_package(glm CONFIG REQUIRED) # vcpkg target: glm::glm 
-find_package(assimp CONFIG REQUIRED) # vcpkg target: assimp
+set(HAVE_VCPKG_DEPS OFF)
+if (USE_VCPKG)
+  find_package(glfw3 CONFIG QUIET)
+  find_package(GLEW  CONFIG QUIET)
+  find_package(glm   CONFIG QUIET)
+  find_package(assimp CONFIG QUIET)
+
+  if (TARGET glfw AND TARGET GLEW::GLEW AND TARGET glm::glm AND TARGET assimp::assimp)
+    set(HAVE_VCPKG_DEPS ON)
+  endif()
+endif()
+# -----------------------------
+# Fallback: git submodules
+# -----------------------------
+if (NOT HAVE_VCPKG_DEPS)
+  if (NOT USE_SUBMODULES)
+    message(FATAL_ERROR "Dependencies not found via vcpkg and USE_SUBMODULES=OFF")
+  endif()
+
+  message(STATUS "Using submodules/FetchContent dependencies")
+
+  # GLFW
+  if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/glfw/CMakeLists.txt")
+    add_subdirectory(extern/glfw)
+  else()
+    FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git GIT_TAG 3.4)
+    FetchContent_MakeAvailable(glfw)
+  endif()
+
+  # GLM (header-only)
+  if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/glm/CMakeLists.txt")
+    add_subdirectory(extern/glm)
+  else()
+    FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git GIT_TAG 1.0.1)
+    FetchContent_MakeAvailable(glm)
+  endif()
+
+  # Assimp
+  if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/assimp/CMakeLists.txt")
+    set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+    add_subdirectory(extern/assimp)
+  else()
+    set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(assimp GIT_REPOSITORY https://github.com/assimp/assimp.git GIT_TAG v5.4.3)
+    FetchContent_MakeAvailable(assimp)
+  endif()
+
+  # GLEW
+  if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/glew/build/cmake/CMakeLists.txt")
+    set(ONLY_LIBS ON CACHE BOOL "" FORCE)
+    set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
+    add_subdirectory(extern/glew/build/cmake)
+  else()
+    FetchContent_Declare(glew
+      GIT_REPOSITORY https://github.com/nigels-com/glew.git
+      GIT_TAG glew-2.2.0
+    )
+    FetchContent_MakeAvailable(glew)
+  endif()
+endif()
 
 # --- main lib ---
 add_library(FOpenGL STATIC
@@ -36,7 +100,32 @@ add_library(FOpenGL STATIC
     src/ThirdParty/ImGuiHandler.cpp
 )
 target_include_directories(FOpenGL PUBLIC include)
-target_link_libraries(FOpenGL PUBLIC glfw GLEW::GLEW glm::glm assimp::assimp)
+
+set(GLEW_TARGET "")
+if (HAVE_VCPKG_DEPS)
+  set(GLEW_TARGET GLEW::GLEW)
+else()
+  if (TARGET GLEW::GLEW)
+    set(GLEW_TARGET GLEW::GLEW)
+  elseif (TARGET libglew_static)
+    set(GLEW_TARGET libglew_static)
+    target_compile_definitions(FOpenGL PUBLIC GLEW_STATIC=1)
+  elseif (TARGET glew_s)
+    set(GLEW_TARGET glew_s)
+    target_compile_definitions(FOpenGL PUBLIC GLEW_STATIC=1)
+  else()
+    message(FATAL_ERROR "Could not find a usable GLEW target in submodule build.")
+  endif()
+endif()
+
+set(ASSIMP_TARGET "")
+if (TARGET assimp::assimp)
+  set(ASSIMP_TARGET assimp::assimp)
+elseif (TARGET assimp)
+  set(ASSIMP_TARGET assimp)
+else()
+  message(FATAL_ERROR "Assimp target not found after adding assimp")
+endif()
 
 # --- ImGui (extern/imgui) ---
 if (WITH_IMGUI)
@@ -56,7 +145,7 @@ if (WITH_IMGUI)
     )
     
     target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLEW)
-    target_link_libraries(imgui PUBLIC glfw GLEW::GLEW)
+    target_link_libraries(FOpenGL PUBLIC glfw glm::glm ${ASSIMP_TARGET} ${GLEW_TARGET})
 
     target_link_libraries(FOpenGL PUBLIC imgui)
     target_compile_definitions(FOpenGL PUBLIC USE_IMGUI=1)

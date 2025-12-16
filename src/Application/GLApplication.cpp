@@ -348,11 +348,19 @@ void GLApplication::Run()
         }
         window_->ResetDelta();
 
+        if (window_->IsResized())
+        {
+            projection_ = glm::perspective(glm::radians(45.0f),
+                static_cast<float>(window_->GetBufferWidth())/static_cast<float>(window_->GetBufferHeight()),
+            0.1f, 100.0f);
+        }
+
         DirectionalShadowMapPass(dirLight_);
         RenderPass();
         DrawUI();
 
         glfwSwapBuffers(window_->GetWindow());
+        window_->SetResized(false);
     }
 }
 

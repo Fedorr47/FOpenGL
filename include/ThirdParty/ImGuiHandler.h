@@ -3,6 +3,7 @@
 #ifdef USE_IMGUI
 #include <vector>
 #include <imgui.h>
+#include <algorithm>
 #include "Light/DirectionalLight.h"
 #include "Light/PointLight.h"
 
@@ -38,6 +39,71 @@ static constexpr AttenPreset kPresets[] = {
     {"Medium",            1.0f, 0.14f,  0.07f},
     {"Far",               1.0f, 0.09f,  0.032f},
 };
+
+template <typename T>
+inline void DrawModelManipulatorGui(T&& models)
+{
+    if (!ImGui::Begin("Model Manipulator"))
+    {
+        ImGui::End();
+        return;
+    }
+    
+    if (models.empty())
+    {
+        ImGui::TextUnformatted("No models in scene.");
+        ImGui::End();
+        return;
+    }
+
+    static int active = 0;
+    active = std::clamp(active, 0, (int)models.size() - 1);
+    
+    ImGui::SliderInt("Active model", &active, 0, (int)models.size() - 1);
+    
+    if (active < 0 || active >= (int)models.size() || !models[active])
+    {
+        ImGui::TextUnformatted("Active model is null.");
+        ImGui::End();
+        return;
+    }
+
+    auto& m = *models[active];
+    
+    glm::vec3 pos = m.GetTranslation();
+    glm::vec3 rot = m.GetRotation(); // degrees
+    glm::vec3 scl = m.GetScale();
+
+    ImGui::Separator();
+    ImGui::Text("Model #%d", active);
+
+    bool changed = false;
+
+    changed |= ImGui::DragFloat3("Position", &pos.x, 0.05f);
+    changed |= ImGui::DragFloat3("Rotation (deg)", &rot.x, 0.5f);
+    
+    changed |= ImGui::DragFloat3("Scale", &scl.x, 0.01f, 0.001f, 1000.0f);
+    scl.x = std::max(scl.x, 0.001f);
+    scl.y = std::max(scl.y, 0.001f);
+    scl.z = std::max(scl.z, 0.001f);
+
+    if (changed)
+    {
+        m.SetPosition(pos);
+        m.SetRotation(rot);
+        m.SetScale(scl);
+    }
+
+    ImGui::Separator();
+    
+    if (ImGui::Button("Reset Pos")) { m.SetPosition({0.f, 0.f, 0.f}); }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset Rot")) { m.SetRotation({0.f, 0.f, 0.f}); }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset Scale")) { m.SetScale({1.f, 1.f, 1.f}); }
+
+    ImGui::End();
+}
     
 inline void DrawPointLightsGui(std::vector<std::shared_ptr<PointLight>>& lights, int maxCount)
 {

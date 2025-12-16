@@ -82,8 +82,11 @@ void GLApplication::CreateDirectionalLight()
     DirectionalLightProperties dlp;
     dlp.Colour = {1,1,1};
     dlp.AmbientIntensity = 0.1f;
-    dlp.DiffuseIntensity = 0.1f;
-    dlp.Direction = { -0.5f, -1.0f, -5.0f };
+    dlp.DiffuseIntensity = 0.6f;
+    dlp.Direction = { 0.0f, -7.0f, -5.0f };
+    dlp.shadowMapPtr = std::make_shared<ShadowMap>();
+    dlp.shadowMapPtr->Initialize(2048, 2048);
+    
     dirLight_ = std::make_shared<DirectionalLight>(DirectionalLight(dlp));
 }
 
@@ -91,6 +94,7 @@ void GLApplication::AddModels()
 {
     models_.push_back(std::make_shared<Model>());
     models_.back()->LoadModel("../assets/models/Intergalactic_Spaceship-(Wavefront).obj");
+    models_.back()->SetPosition({-2,2,0.0f});
 }
 
 void GLApplication::CreateScene()
@@ -109,6 +113,12 @@ void GLApplication::CreateScene()
     shader_ = std::make_unique<Shader>();
     if (!shader_->CreateFromFiles("../shaders/basic.vert", "../shaders/basic.frag")) {
         throw std::exception("Failed to create shader.\n");
+    }
+
+    directionalShadowshader_ = std::make_unique<Shader>();
+    if (!directionalShadowshader_->CreateFromFiles("../shaders/directional_shadow_map.vert",
+        "../shaders/directional_shadow_map.frag")) {
+        throw std::exception("Failed to create shadow shader.\n");
     }
 
     // Lights
@@ -189,6 +199,7 @@ void GLApplication::DrawUI()
     ImGuiHandler::DrawPointLightsGui(
         pointLights_,
         static_cast<int>(Shader::MAX_POINT_LIGHTS));
+    ImGuiHandler::DrawModelManipulatorGui(models_);
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -211,44 +222,92 @@ void GLApplication::DrawPyramids(glm::mat4& model)
     meshes_[0]->Draw();
 }
 
-void GLApplication::RenderFrame()
+void GLApplication::DrawModels(glm::mat4& model, Shader& sh, bool depthOnly)
 {
-    glClearColor(0,0,0,1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    for (std::shared_ptr<Model>& modelObj : models_)
+    {
+        model = glm::translate(model, modelObj->GetTranslation());
+        model = glm::scale(model, modelObj->GetScale());
 
+        glm::vec3 r = glm::radians(modelObj->GetRotation()); // rotDeg -> radians
+        model = glm::rotate(model, r.x, glm::vec3(1,0,0));
+        model = glm::rotate(model, r.y, glm::vec3(0,1,0));
+        model = glm::rotate(model, r.z, glm::vec3(0,0,1));
+        
+        glUniformMatrix4fv(sh.GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
+        if (!depthOnly) {
+            materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
+            modelObj->Render();
+        } else {
+            modelObj->Render();  
+        }
+    }
+}
+
+void GLApplication::DirectionalShadowMapPass(std::shared_ptr<DirectionalLight> light)
+{
+    auto smap = light->GetProperties().shadowMapPtr;
+    directionalShadowshader_->Use();
+    
+    glViewport(0, 0, smap->GetShadowWidth(), smap->GetShadowHeight());
+    smap->Write();
+    glClear(GL_DEPTH_BUFFER_BIT); 
+    
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(2.0f, 4.0f);
+    glCullFace(GL_FRONT);
+    
+    directionalShadowshader_->SetDirectionalLightTransform(light->CalculateLightTransform());
+    
+    RenderScene(*directionalShadowshader_, /*depthOnly=*/true);
+    
+    glCullFace(GL_BACK);
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void GLApplication::RenderPass()
+{
     shader_->Use();
+
     glUniformMatrix4fv(shader_->GetUniformProj(), 1, GL_FALSE, glm::value_ptr(projection_));
     glUniformMatrix4fv(shader_->GetUniformView(), 1, GL_FALSE, glm::value_ptr(camera_->GetViewMatrix()));
     glUniform3f(shader_->GetUniformEyePos(), camera_->GetPosition().x, camera_->GetPosition().y, camera_->GetPosition().z);
 
-    // Lights
+    glViewport(0, 0, window_->GetBufferWidth(), window_->GetBufferHeight());
+    glClearColor(0,0,0,1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
     dirLight_->UseLight(shader_->DirLight);
-    glUniform1i(shader_->UniPointLightCount, static_cast<GLint>(pointLights_.size()));
-    glUniform1i(shader_->UniSpotLightCount, static_cast<GLint>(spotLights_.size()));
+    glUniform1i(shader_->UniPointLightCount, (GLint)pointLights_.size());
+    glUniform1i(shader_->UniSpotLightCount,  (GLint)spotLights_.size());
+    shader_->SetDirectionalLightTransform(dirLight_->CalculateLightTransform());
+
+    dirLight_->GetProperties().shadowMapPtr->Read(GL_TEXTURE1);
+    shader_->SetTexture(0);                  // diffuse sampler -> unit 0
+    shader_->SetDirectionalShadowMap(1);     // shadow sampler  -> unit 1
 
     LightsApplier<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>::ApplyLights(pointLights_, *shader_);
-    spotLights_[0]->SetFlash(camera_->GetPosition(), camera_->GetDirection());
-    LightsApplier<SpotLight, SpotLightUniformObjects, Shader::MAX_SPOT_LIGHTS>::ApplyLights(spotLights_, *shader_);
+    if (!spotLights_.empty())
+        spotLights_[0]->SetFlash(camera_->GetPosition(), camera_->GetDirection());
+    LightsApplier<SpotLight,  SpotLightUniformObjects,  Shader::MAX_SPOT_LIGHTS >::ApplyLights(spotLights_,  *shader_);
     
-    // Draw pyramids
-    glm::mat4 model(1.0f);
-    //DrawPyramids();
+    RenderScene(*shader_, /*depthOnly=*/false);
+}
 
+void GLApplication::RenderScene(Shader& sh, bool depthOnly)
+{
     // Floor
-    model = glm::mat4(1.0f);
+    glm::mat4 model(1.f);
     model = glm::translate(model, {0,-2,-2.5f});
-    glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
-    textures_[1]->Use(GL_TEXTURE0);
-    materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
+    glUniformMatrix4fv(sh.GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
+    if (!depthOnly) {
+        textures_[1]->Use(GL_TEXTURE0);
+        materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
+    }
     meshes_[1]->Draw();
 
-    // spaceship
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, {-2,-1,0.0f});
-    //model = glm::scale(model, {0.01,0.01,0.01f});
-    glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
-    materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
-    models_[0]->Render();
+    DrawModels(model, sh, depthOnly);
 }
 
 void GLApplication::Run()
@@ -289,7 +348,8 @@ void GLApplication::Run()
         }
         window_->ResetDelta();
 
-        RenderFrame();
+        DirectionalShadowMapPass(dirLight_);
+        RenderPass();
         DrawUI();
 
         glfwSwapBuffers(window_->GetWindow());

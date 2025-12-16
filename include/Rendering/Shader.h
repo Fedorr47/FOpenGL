@@ -1,31 +1,10 @@
-
 #pragma once
 #include <string>
 #include <filesystem>
 #include <GL/glew.h>
+#include <Light/Light.h>
 
 #include "Light/LightProperties.h"
-
-struct DirectionalLightUniform {
-    GLint colour = -1;
-    GLint ambientIntensity = -1;
-    GLint diffuseIntensity = -1;
-    GLint direction = -1;
-};
-
-struct PointLightUniform {
-    GLint colour = -1;
-    GLint ambientIntensity = -1;
-    GLint diffuseIntensity = -1;
-    GLint position = -1;
-    GLint constant = -1;
-    GLint linear = -1;
-    GLint exponent = -1;
-};
-
-struct SpotLightUniforms : PointLightUniform {
-    GLint direction = -1;
-};
 
 class Shader {
 public:
@@ -36,6 +15,10 @@ public:
     bool CreateFromFiles(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
 
     void Use() const;
+    void SetTexture(GLuint textureUnit);
+    void SetDirectionalShadowMap(GLuint textureUnit);
+    void SetDirectionalLightTransform(std::unique_ptr<glm::mat4> lTransform);
+    void SetUniformModel(GLint uniformModel) { uniModel_ = uniformModel; }
     void Clear();
 
     GLint GetUniformModel() const { return uniModel_; }
@@ -76,4 +59,6 @@ private:
     // common uniforms
     GLint uniModel_ = -1, uniView_ = -1, uniProj_ = -1;
     GLint uniEyePos_ = -1, uniSpecularIntensity_ = -1, uniShininess_ = -1;
+    GLint uniTexture_ = -1;
+    GLint uniDirectionalLightTransform_ = -1, uniDirectionalShadowMap_ = -1;
 };

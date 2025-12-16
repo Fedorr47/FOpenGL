@@ -41,13 +41,17 @@ public:
 
 private:
     void CreateScene();
-    void RenderFrame();
+    void RenderScene(Shader& sh, bool depthOnly);
     void DrawUI();
     void DrawPyramids(glm::mat4& model);
+    void DrawModels(glm::mat4& model, Shader& sh, bool depthOnly);
+    void DirectionalShadowMapPass(std::shared_ptr<DirectionalLight> light);
+    void RenderPass();
 
 private:
     std::unique_ptr<GLWindow> window_;
     std::unique_ptr<Shader> shader_;
+    std::unique_ptr<Shader> directionalShadowshader_;
 
     std::shared_ptr<Camera> camera_;
 

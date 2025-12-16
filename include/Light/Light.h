@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 
+#include "Rendering/Shadow/ShadowMap.h"
+
 template<class P>
 concept LightPropsType = requires(P p) {
     { p.Colour } -> std::convertible_to<glm::vec3>;
@@ -21,7 +23,7 @@ template<LightPropsType P, UniformObjectsType U>
 class Light {
 public:
     Light() = default;
-    explicit Light(const P& in) : Props(in) {}
+    explicit Light(const P& in) : Props(in){}
     virtual ~Light() = default;
 
     virtual void UseLight(const U& u) const {

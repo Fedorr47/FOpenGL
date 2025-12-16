@@ -23,6 +23,7 @@ add_library(FOpenGL STATIC
     src/Application/Time.cpp
     src/Window/GLWindow.cpp
     src/Rendering/Shader.cpp
+    src/Rendering/Shadow/ShadowMap.cpp
     src/Texture/Texture.cpp
     src/Model/Mesh.cpp
     src/Model/Model.cpp

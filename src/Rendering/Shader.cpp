@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <glm/gtc/type_ptr.inl>
 
 Shader::Shader() {}
 Shader::~Shader() { Clear(); }
@@ -107,6 +108,9 @@ bool Shader::LinkAndReflect()
     uniEyePos_ = get("eyePosition");
     uniSpecularIntensity_ = get("material.specularIntensity");
     uniShininess_ = get("material.shininess");
+    uniTexture_ = get("theTexture");
+    uniDirectionalLightTransform_ = get("directionalLightTransform");
+    uniDirectionalShadowMap_ = get("directionalShadowMap");
 
     DirLight.Colour           = get("directionalLight.base.colour");
     DirLight.AmbientIntensity = get("directionalLight.base.ambientIntensity");
@@ -145,7 +149,25 @@ bool Shader::LinkAndReflect()
     return true;
 }
 
-void Shader::Use() const { glUseProgram(program_); }
+void Shader::Use() const
+{
+    glUseProgram(program_);
+}
+
+void Shader::SetTexture(GLuint textureUnit)
+{
+    glUniform1i(uniTexture_, textureUnit);
+}
+void Shader::SetDirectionalShadowMap(GLuint textureUnit)
+{
+    glUniform1i(uniDirectionalShadowMap_, textureUnit);
+}
+void Shader::SetDirectionalLightTransform(std::unique_ptr<glm::mat4> lTransform)
+{
+    glUniformMatrix4fv(
+        uniDirectionalLightTransform_, 1, GL_FALSE, glm::value_ptr(*lTransform));
+}
+
 void Shader::Clear()
 {
     if (program_) {

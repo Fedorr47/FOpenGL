@@ -1,11 +1,20 @@
-
 #pragma once
 #include <glm/glm.hpp>
+
+#include <memory>
 
 struct CommonLightProperties {
     glm::vec3 Colour{1.0f,1.0f,1.0f};
     float AmbientIntensity{0.1f};
     float DiffuseIntensity{1.0f};
+    glm::mat4 lightProj = glm::mat4(1.0f);
+    
+    std::shared_ptr<ShadowMap> shadowMapPtr = nullptr;
+
+    CommonLightProperties()
+    {
+        shadowMapPtr = std::make_shared<ShadowMap>();
+    }
 };
 
 struct DirectionalLightProperties : CommonLightProperties {

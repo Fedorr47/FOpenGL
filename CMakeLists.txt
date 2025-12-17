@@ -88,6 +88,7 @@ add_library(FOpenGL STATIC
     src/Window/GLWindow.cpp
     src/Rendering/Shader.cpp
     src/Rendering/Shadow/ShadowMap.cpp
+    src/Rendering/Shadow/OmniShadowMap.cpp
     src/Texture/Texture.cpp
     src/Model/Mesh.cpp
     src/Model/Model.cpp
@@ -95,11 +96,35 @@ add_library(FOpenGL STATIC
     src/Light/LightCommon.cpp
     src/Light/DirectionalLight.cpp
     src/Light/PointLight.cpp
+    src/Light/SpotLight.cpp
     src/Materials/Material.cpp
     src/Materials/MaterialFactory.cpp
     src/ThirdParty/ImGuiHandler.cpp
 )
-target_include_directories(FOpenGL PUBLIC include)
+
+target_include_directories(FOpenGL
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+file(GLOB_RECURSE FOPENGL_HEADERS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
+)
+
+target_sources(FOpenGL PRIVATE ${FOPENGL_HEADERS})
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${FOPENGL_HEADERS})
+
+file(GLOB_RECURSE FOPENGL_SHADERS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.vert"
+  "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.frag"
+  "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.geom"
+)
+
+target_sources(FOpenGL PRIVATE ${FOPENGL_SHADERS})
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/shaders" PREFIX "Shader Files" FILES ${FOPENGL_SHADERS})
 
 set(GLEW_TARGET "")
 if (HAVE_VCPKG_DEPS)

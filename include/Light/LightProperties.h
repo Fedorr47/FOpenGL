@@ -3,22 +3,24 @@
 
 #include <memory>
 
+#include "Rendering/Shadow/OmniShadowMap.h"
+
 struct CommonLightProperties {
     glm::vec3 Colour{1.0f,1.0f,1.0f};
     float AmbientIntensity{0.1f};
     float DiffuseIntensity{1.0f};
     glm::mat4 lightProj = glm::mat4(1.0f);
-    
-    std::shared_ptr<ShadowMap> shadowMapPtr = nullptr;
 
-    CommonLightProperties()
-    {
-        shadowMapPtr = std::make_shared<ShadowMap>();
-    }
+    std::shared_ptr<ShadowMap> shadowMapPtr = nullptr;
 };
 
 struct DirectionalLightProperties : CommonLightProperties {
     glm::vec3 Direction{0.0f,-1.0f,0.0f};
+
+    DirectionalLightProperties()
+    {
+        shadowMapPtr = std::make_shared<ShadowMap>();
+    }
 };
 
 struct PointLightProperties : CommonLightProperties {
@@ -26,6 +28,13 @@ struct PointLightProperties : CommonLightProperties {
     float Constant{1.0f};
     float Linear{0.09f};
     float Exponent{0.032f};
+    float farPlane{0.0f};
+    float nearPlane{0.0f};
+
+    PointLightProperties()
+    {
+        shadowMapPtr = std::make_shared<OmniShadowMap>();
+    }
 };
 
 struct SpotLightProperties : PointLightProperties {
@@ -50,6 +59,8 @@ struct PointLightUniformObjects : CommonLightUniformObjects {
     GLint Constant{-1};
     GLint Linear{-1};
     GLint Exponent{-1};
+    GLint farPlane{-1};
+    GLint nearPlane{-1};
 };
 
 struct SpotLightUniformObjects : PointLightUniformObjects {

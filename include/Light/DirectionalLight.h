@@ -26,7 +26,7 @@ public:
             Props.Direction = glm::normalize(Props.Direction);
     }
 
-    std::unique_ptr<glm::mat4> CalculateLightTransform() const
+    std::unique_ptr<glm::mat4> CalculateLightTransform() const override
     {
         glm::vec3 dir = Props.Direction;
         if (glm::length(dir) <= 1e-6f)

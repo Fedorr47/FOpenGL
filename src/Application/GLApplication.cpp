@@ -49,33 +49,6 @@ GLApplication::~GLApplication()
 #endif
 }
 
-void GLApplication::AddPointLights()
-{
-    PointLightProperties plp;
-
-    // TODO: Point lights needed to be optimized 
-    plp.Colour = {1,0,0};
-    plp.Position = {-3,1,-2.5};
-    pointLights_.push_back(std::make_shared<PointLight>(plp));
-    
-    plp.Colour = {0,0,1};
-    plp.Position = { 3,1,-2.5};
-    pointLights_.push_back(std::make_shared<PointLight>(plp));
-}
-
-void GLApplication::AddSpotLights()
-{
-    SpotLightProperties slp{};
-    slp.Colour= {0,1,1};
-    slp.Edge = 20.0f;
-    slp.Position  = {0.f, 5.f, -2.5f};
-    slp.Direction = {0.f, -1.f, 0.f}; 
-
-    spotLights_.push_back(std::make_shared<SpotLight>(slp));
-    //slp.Colour = {0,0,1}; slp.Position = {-4,5,-3};
-    //spotLights_.push_back(std::make_shared<SpotLight>(slp));
-}
-
 void GLApplication::CreateDirectionalLight()
 {
     // Lights
@@ -84,17 +57,89 @@ void GLApplication::CreateDirectionalLight()
     dlp.AmbientIntensity = 0.1f;
     dlp.DiffuseIntensity = 0.6f;
     dlp.Direction = { 0.0f, -7.0f, -5.0f };
-    dlp.shadowMapPtr = std::make_shared<ShadowMap>();
     dlp.shadowMapPtr->Initialize(2048, 2048);
     
     dirLight_ = std::make_shared<DirectionalLight>(DirectionalLight(dlp));
 }
 
+void GLApplication::AddPointLights()
+{
+    PointLightProperties plp;
+
+    // TODO: Point lights needed to be optimized 
+    plp.Colour = {1,1,1};
+    plp.Position = {-3,1,-2.5};
+    plp.shadowMapPtr->Initialize(1024, 1024);
+    plp.nearPlane = 0.01f;
+    plp.farPlane = 100.0f;
+    pointLights_.push_back(std::make_shared<PointLight>(plp));
+
+    /*
+    plp.Colour = {0,0,1};
+    plp.Position = { 3,1,-2.5};
+    pointLights_.push_back(std::make_shared<PointLight>(plp));
+    */
+}
+
+void GLApplication::AddSpotLights()
+{
+    SpotLightProperties slp{};
+    slp.Colour= {1,1,1};
+    slp.Edge = 20.0f;
+    slp.Position  = {0.f, 5.f, -2.5f};
+    slp.Direction = {0.f, -1.f, 0.f};
+    slp.shadowMapPtr->Initialize(1024, 1024);
+    slp.nearPlane = 0.01f;
+    slp.farPlane = 100.0f;
+
+    spotLights_.push_back(std::make_shared<SpotLight>(slp));
+    //slp.Colour = {0,0,1}; slp.Position = {-4,5,-3};
+    //spotLights_.push_back(std::make_shared<SpotLight>(slp));
+}
+
+void GLApplication::CreateShaders()
+{
+    shader_ = std::make_unique<Shader>();
+    if (!shader_->CreateFromFiles("../shaders/basic.vert", "../shaders/basic.frag")) {
+        throw std::exception("Failed to create shader.\n");
+    }
+
+    directionalShadowshader_ = std::make_unique<Shader>();
+    if (!directionalShadowshader_->CreateFromFiles("../shaders/directional_shadow_map.vert",
+        "../shaders/directional_shadow_map.frag")) {
+        throw std::exception("Failed to create shadow shader.\n");
+        }
+
+    omniShadowshader_  = std::make_unique<Shader>();
+    if (!omniShadowshader_->CreateFromFiles("../shaders/omni_shadow_map.vert",
+        "../shaders/omni_shadow_map.frag",
+        "../shaders/omni_shadow_map.geom")) {
+        throw std::exception("Failed to create shadow shader.\n");
+        }
+}
+
+void GLApplication::CreateTextures()
+{
+    auto tex1 = std::make_unique<Texture>("assets/textures/brick.png");
+    tex1->LoadA();
+    textures_.push_back(std::move(tex1));
+    
+    auto tex2 = std::make_unique<Texture>("assets/textures/dirt.png");
+    tex2->LoadA();
+    textures_.push_back(std::move(tex2));
+    
+    auto tex3 = std::make_unique<Texture>("assets/textures/plain.png");
+    tex3->LoadA();
+    textures_.push_back(std::move(tex3));
+}
+
+// TODO: Change to a method that get a path and properties
 void GLApplication::AddModels()
 {
     models_.push_back(std::make_shared<Model>());
-    models_.back()->LoadModel("../assets/models/Intergalactic_Spaceship-(Wavefront).obj");
-    models_.back()->SetPosition({-2,2,0.0f});
+    models_.back()->LoadModel("../assets/models/Seahawk.obj");
+    // TODO: Debug - delete later 
+    models_.back()->SetScale({0.06f,0.06f,0.06f});
 }
 
 void GLApplication::CreateScene()
@@ -109,17 +154,7 @@ void GLApplication::CreateScene()
         static_cast<float>(window_->GetBufferWidth())/static_cast<float>(window_->GetBufferHeight()),
         0.1f, 100.0f);
 
-    // Shader
-    shader_ = std::make_unique<Shader>();
-    if (!shader_->CreateFromFiles("../shaders/basic.vert", "../shaders/basic.frag")) {
-        throw std::exception("Failed to create shader.\n");
-    }
-
-    directionalShadowshader_ = std::make_unique<Shader>();
-    if (!directionalShadowshader_->CreateFromFiles("../shaders/directional_shadow_map.vert",
-        "../shaders/directional_shadow_map.frag")) {
-        throw std::exception("Failed to create shadow shader.\n");
-    }
+   CreateShaders();
 
     // Lights
     CreateDirectionalLight();
@@ -154,18 +189,7 @@ void GLApplication::CreateScene()
     m2->Create(floor, fidx, 8);
     meshes_.push_back(std::move(m2));
 
-    // Textures
-    auto tex1 = std::make_unique<Texture>("assets/textures/brick.png");
-    tex1->LoadA();
-    textures_.push_back(std::move(tex1));
-    
-    auto tex2 = std::make_unique<Texture>("assets/textures/dirt.png");
-    tex2->LoadA();
-    textures_.push_back(std::move(tex2));
-    
-    auto tex3 = std::make_unique<Texture>("assets/textures/plain.png");
-    tex3->LoadA();
-    textures_.push_back(std::move(tex3));
+    CreateTextures();
 
     // Materials
     materials_.push_back(std::make_shared<Material>(1.0f,64.0f)); // shiny
@@ -257,12 +281,40 @@ void GLApplication::DirectionalShadowMapPass(std::shared_ptr<DirectionalLight> l
     glPolygonOffset(2.0f, 4.0f);
     glCullFace(GL_FRONT);
     
-    directionalShadowshader_->SetDirectionalLightTransform(light->CalculateLightTransform());
+    directionalShadowshader_->SetDirectionalLightTransform(light->CalculateLightTransform().get());
     
     RenderScene(*directionalShadowshader_, /*depthOnly=*/true);
     
     glCullFace(GL_BACK);
     glDisable(GL_POLYGON_OFFSET_FILL);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+template <typename Properties, typename Uniforms>
+void GLApplication::OmniShadowMapPass(std::shared_ptr<Light<Properties, Uniforms>> light)
+{
+    auto smap = light->GetProperties().shadowMapPtr;
+
+    omniShadowshader_->Use();
+    glViewport(0, 0, smap->GetShadowWidth(), smap->GetShadowHeight());
+    smap->Write();
+    glClear(GL_DEPTH_BUFFER_BIT);
+    
+    glCullFace(GL_FRONT);
+    
+    if (omniShadowshader_->GetOmniLightPos() != -1) {
+        const auto& pos = light->GetProperties().Position;
+        glUniform3f(omniShadowshader_->GetOmniLightPos(), pos.x, pos.y, pos.z);
+    }
+    if (omniShadowshader_->GetOmniFarPlane() != -1) {
+        glUniform1f(omniShadowshader_->GetOmniFarPlane(), light->GetProperties().farPlane); 
+    }
+    
+    omniShadowshader_->SetLightMatrices(light->CalculateLightTransformCube());
+    
+    RenderScene(*omniShadowshader_, /*depthOnly=*/true);
+    
+    glCullFace(GL_BACK);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -281,7 +333,7 @@ void GLApplication::RenderPass()
     dirLight_->UseLight(shader_->DirLight);
     glUniform1i(shader_->UniPointLightCount, (GLint)pointLights_.size());
     glUniform1i(shader_->UniSpotLightCount,  (GLint)spotLights_.size());
-    shader_->SetDirectionalLightTransform(dirLight_->CalculateLightTransform());
+    shader_->SetDirectionalLightTransform(dirLight_->CalculateLightTransform().get());
 
     dirLight_->GetProperties().shadowMapPtr->Read(GL_TEXTURE1);
     shader_->SetTexture(0);                  // diffuse sampler -> unit 0
@@ -314,6 +366,8 @@ void GLApplication::Run()
 {
     CreateScene();
     clock_->resetTime();
+
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     bool prevTab=false;
     while (!glfwWindowShouldClose(window_->GetWindow())) {
@@ -350,12 +404,20 @@ void GLApplication::Run()
 
         if (window_->IsResized())
         {
-            projection_ = glm::perspective(glm::radians(45.0f),
+            projection_ = glm::perspective(glm::radians(60.0f),
                 static_cast<float>(window_->GetBufferWidth())/static_cast<float>(window_->GetBufferHeight()),
             0.1f, 100.0f);
         }
 
         DirectionalShadowMapPass(dirLight_);
+        for (size_t i = 0; i < pointLights_.size(); ++i)
+        {
+            OmniShadowMapPass<PointLightProperties, PointLightUniformObjects>(pointLights_[i]);
+        }
+        for (size_t i = 0; i < spotLights_.size(); ++i)
+        {
+            OmniShadowMapPass<SpotLightProperties, SpotLightUniformObjects>(spotLights_[i]);
+        }
         RenderPass();
         DrawUI();
 

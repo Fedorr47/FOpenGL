@@ -1,7 +1,9 @@
-
 #include "Model//Mesh.h"
 
-Mesh::~Mesh(){ Clear(); }
+Mesh::~Mesh()
+{
+    Clear();
+}
 
 void Mesh::Create(const std::vector<float>& vertices,
                   const std::vector<unsigned int>& indices,
@@ -43,7 +45,16 @@ void Mesh::Draw() const
 
 void Mesh::Clear()
 {
-    if (IBO_) { glDeleteBuffers(1, &IBO_); IBO_=0; }
-    if (VBO_) { glDeleteBuffers(1, &VBO_); VBO_=0; }
-    if (VAO_) { glDeleteVertexArrays(1, &VAO_); VAO_=0; }
+    if (IBO_)
+    {
+        glDeleteBuffers(1, &IBO_); IBO_=0;
+    }
+    if (VBO_)
+    {
+        glDeleteBuffers(1, &VBO_); VBO_=0;
+    }
+    if (VAO_)
+    {
+        glDeleteVertexArrays(1, &VAO_); VAO_=0;
+    }
 }

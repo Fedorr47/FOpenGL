@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 
+#include <memory>
+
 #include "Rendering/Shadow/ShadowMap.h"
 
 template<class P>
@@ -31,10 +33,14 @@ public:
         glUniform1f(u.AmbientIntensity, Props.AmbientIntensity);
         glUniform1f(u.DiffuseIntensity, Props.DiffuseIntensity);
     }
-
+    // TODO: Maybe need to return std::optional
     virtual void SetProperties(const P& p) { Props = p; }
+    virtual std::unique_ptr<glm::mat4> CalculateLightTransform() const { return nullptr; }
+    virtual std::vector<glm::mat4> CalculateLightTransformCube() const { return std::vector<glm::mat4>{};}
+    
     P&       GetProperties()       { return Props; }
     const P& GetProperties() const { return Props; }
+    
 
 protected:
     P Props{};

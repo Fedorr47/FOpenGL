@@ -43,7 +43,7 @@ public:
     void SetProperties(const PropsType& p) override
     {
         Mixin::SetProperties(p);
-        auto Props = Mixin::GetLightProperties();
+        auto& Props = Mixin::GetLightProperties();
         
         float aspect = 1.0f;
 

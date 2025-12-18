@@ -9,31 +9,30 @@
 template <typename LightType, typename LightUniformType, int MAX_LIGHTS>
 struct LightsApplier
 {
-    static void ApplyLights(std::span<std::shared_ptr<LightType>> Lights, Shader& shader,
-        unsigned int textureUnit = 0,
-        unsigned int offset = 0)
+    static void ApplyLights(std::span<std::shared_ptr<LightType>> lights,
+                            Shader& shader,
+                            unsigned baseTextureUnit,
+                            unsigned shadowIndexOffset)
     {
+        auto uniforms = shader.GetUniformArray<LightUniformType>();
+        if (!uniforms) return;
+
+        const int count = std::min<int>((int)lights.size(), MAX_LIGHTS);
+
+        for (int i = 0; i < count; ++i)
         {
-            auto LightUniforms = shader.GetUniformArray<LightUniformType>();
-            if (LightUniforms == nullptr)
-            {
-                return;
-            }
-            for (int i = 0; i<static_cast<int>(Lights.size()) && i < MAX_LIGHTS; ++i)
-            {
-                if (Lights[i] == nullptr)
-                {
-                    continue;
-                }
-                Lights[i]->UseLight(LightUniforms[i]);
-                
-                const unsigned slot = textureUnit + offset + i;
+            auto& L = lights[i];
+            if (!L) continue;
+            
+            L->UseLight(uniforms[i]);
+            
+            const unsigned slot = baseTextureUnit + (unsigned)i;
+            L->GetLightProperties().shadowMapPtr->Read(GL_TEXTURE0 + slot);
+            
+            const unsigned idx = shadowIndexOffset + (unsigned)i;
 
-                Lights[i]->GetLightProperties().shadowMapPtr->Read(GL_TEXTURE0 + slot);
-
-                glUniform1i(shader.OmniShadowMap[i + offset].ShadowMap, slot);
-                glUniform1f(shader.OmniShadowMap[i + offset].farPlane, Lights[i]->GetLightProperties().farPlane);
-            }
+            glUniform1i(shader.OmniShadowMap[idx].ShadowMap, (GLint)slot);
+            glUniform1f(shader.OmniShadowMap[idx].farPlane, L->GetLightProperties().farPlane);
         }
     }
 };

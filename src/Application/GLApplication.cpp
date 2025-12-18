@@ -68,7 +68,7 @@ void GLApplication::AddPointLights()
 
     // TODO: Point lights needed to be optimized 
     plp.Colour = {1,1,1};
-    plp.Position = {-3,1,-2.5};
+    plp.Position = {0.0f,1.0f,-0.5f};
     plp.shadowMapPtr->Initialize(1024, 1024);
     plp.nearPlane = 0.01f;
     plp.farPlane = 100.0f;
@@ -83,6 +83,7 @@ void GLApplication::AddPointLights()
 
 void GLApplication::AddSpotLights()
 {
+    /*
     SpotLightProperties slp{};
     slp.Colour= {1,1,1};
     slp.Edge = 20.0f;
@@ -95,6 +96,7 @@ void GLApplication::AddSpotLights()
     spotLights_.push_back(std::make_shared<SpotLight>(slp));
     //slp.Colour = {0,0,1}; slp.Position = {-4,5,-3};
     //spotLights_.push_back(std::make_shared<SpotLight>(slp));
+    */
 }
 
 void GLApplication::CreateShaders()
@@ -111,9 +113,9 @@ void GLApplication::CreateShaders()
         }
 
     omniShadowshader_  = std::make_unique<Shader>();
-    if (!omniShadowshader_->CreateFromFiles("../shaders/omni_shadow_map.vert",
-        "../shaders/omni_shadow_map.frag",
-        "../shaders/omni_shadow_map.geom")) {
+    if (!omniShadowshader_->CreateFromFiles("../shaders/omni_directional_shadow_map.vert",
+        "../shaders/omni_directional_shadow_map.frag",
+        "../shaders/omni_directional_shadow_map.geom")) {
         throw std::exception("Failed to create shadow shader.\n");
         }
 }
@@ -137,7 +139,7 @@ void GLApplication::CreateTextures()
 void GLApplication::AddModels()
 {
     models_.push_back(std::make_shared<Model>());
-    models_.back()->LoadModel("../assets/models/Seahawk.obj");
+    models_.back()->LoadModel("../assets/models/Quarren Coyote Ship.obj");
     // TODO: Debug - delete later 
     models_.back()->SetScale({0.06f,0.06f,0.06f});
 }
@@ -233,18 +235,19 @@ void GLApplication::DrawUI()
 
 void GLApplication::DrawPyramids(glm::mat4& model)
 {
-    model = glm::translate(model, {0,0,-2.5f});
+    model = glm::translate(model, {0,4.0f,-2.5f});
     glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
     textures_[0]->Use(GL_TEXTURE0);
     materials_[0]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
     meshes_[0]->Draw();
     
-    model = glm::mat4(1.0f);
+    /*
     model = glm::translate(model, {0,4,-2.5f});
     glUniformMatrix4fv(shader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
     textures_[1]->Use(GL_TEXTURE0);
     materials_[1]->Use(shader_->GetUniformSpecularIntensity(), shader_->GetUniformShininess());
     meshes_[0]->Draw();
+    */
 }
 
 void GLApplication::DrawModels(glm::mat4& model, Shader& sh, bool depthOnly)
@@ -321,6 +324,8 @@ void GLApplication::OmniShadowMapPass(std::shared_ptr<T> light)
 
 void GLApplication::RenderPass()
 {
+    const unsigned baseOmniTex = 2;
+    
     shader_->Use();
 
     glUniformMatrix4fv(shader_->GetUniformProj(), 1, GL_FALSE, glm::value_ptr(projection_));
@@ -340,15 +345,16 @@ void GLApplication::RenderPass()
     shader_->SetTexture(0);                  // diffuse sampler -> unit 0
     shader_->SetDirectionalShadowMap(1);     // shadow sampler  -> unit 1
 
-    LightsApplier<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>::ApplyLights(
-        pointLights_, *shader_, 2, 0);
+    LightsApplier<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>
+    ::ApplyLights(pointLights_, *shader_, baseOmniTex, /*shadowIndexOffset=*/0);
     if (!spotLights_.empty())
     {
         spotLights_[0]->SetFlash(camera_->GetPosition(), camera_->GetDirection());
     }
-    LightsApplier<SpotLight,  SpotLightUniformObjects,  Shader::MAX_SPOT_LIGHTS >::ApplyLights(
-        spotLights_,  *shader_, 2 + spotLights_.size(), spotLights_.size());
-    
+    LightsApplier<SpotLight, SpotLightUniformObjects, Shader::MAX_SPOT_LIGHTS>
+    ::ApplyLights(spotLights_, *shader_,
+                  baseOmniTex + (unsigned)pointLights_.size(),
+                  /*shadowIndexOffset=*/(unsigned)pointLights_.size()); 
     RenderScene(*shader_, /*depthOnly=*/false);
 }
 
@@ -364,6 +370,7 @@ void GLApplication::RenderScene(Shader& sh, bool depthOnly)
     }
     meshes_[1]->Draw();
 
+    //DrawPyramids(model);
     DrawModels(model, sh, depthOnly);
 }
 

@@ -79,18 +79,18 @@ float CalcDirectionalShadowFactor(DirectionalLight light)
 
 float CalcOmniShadowFactor(vec3 lightPos, int shadowIndex)
 {
-    vec3 fragToLight = FragPos - lightPos;
+    vec3 fragToLight   = FragPos - lightPos;
     float currentDepth = length(fragToLight);
 
-    float farPlane = OmniShadowMaps[shadowIndex].farPlane;
-
-    float shadow = 0.0;
-    float bias = 0.15; // как в туторе (потом подстроишь)
-    int samples = 20;
+    float farPlane     = OmniShadowMaps[shadowIndex].farPlane;
 
     float viewDistance = length(eyePosition - FragPos);
-    float diskRadius = (1.0 + (viewDistance / farPlane)) / 25.0;
+    float diskRadius   = (1.0 + (viewDistance / farPlane)) / 25.0;
 
+    float bias   = 0.15;
+    float shadow = 0.0;
+
+    const int samples = 20;
     for (int i = 0; i < samples; ++i)
     {
         float closestDepth = texture(
@@ -99,7 +99,6 @@ float CalcOmniShadowFactor(vec3 lightPos, int shadowIndex)
         ).r;
 
         closestDepth *= farPlane;
-
         if (currentDepth - bias > closestDepth)
         shadow += 1.0;
     }
@@ -146,6 +145,7 @@ vec4 CalcPointLights()
     for (int i = 0; i < pointLightCount; ++i)
     {
         float shadow = CalcOmniShadowFactor(pointLights[i].position, i);
+        
         total += CalcPointLight(pointLights[i], shadow);
     }
     return vec4(total, 1.0);
@@ -173,7 +173,7 @@ vec4 CalcSpotLights()
     vec3 total = vec3(0.0);
     for (int i = 0; i < spotLightCount; ++i)
     {
-        int shadowIndex = MAX_POINT_LIGHTS + i;
+        int shadowIndex = pointLightCount + i;
         total += CalcSpotLight(spotLights[i], shadowIndex);
     }
     return vec4(total, 1.0);

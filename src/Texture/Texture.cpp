@@ -28,7 +28,10 @@ void Texture::Use(GLenum unit) const
 
 void Texture::Clear()
 {
-    if (tex_) { glDeleteTextures(1, &tex_); tex_=0; }
+    if (tex_)
+    {
+        glDeleteTextures(1, &tex_); tex_=0;
+    }
 }
 
 bool Texture::LoadFromFile(TextureType Type)

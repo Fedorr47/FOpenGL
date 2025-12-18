@@ -340,12 +340,14 @@ void GLApplication::RenderPass()
     shader_->SetTexture(0);                  // diffuse sampler -> unit 0
     shader_->SetDirectionalShadowMap(1);     // shadow sampler  -> unit 1
 
-    LightsApplier<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>::ApplyLights(pointLights_, *shader_);
+    LightsApplier<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>::ApplyLights(
+        pointLights_, *shader_, 2, 0);
     if (!spotLights_.empty())
     {
         spotLights_[0]->SetFlash(camera_->GetPosition(), camera_->GetDirection());
     }
-    LightsApplier<SpotLight,  SpotLightUniformObjects,  Shader::MAX_SPOT_LIGHTS >::ApplyLights(spotLights_,  *shader_);
+    LightsApplier<SpotLight,  SpotLightUniformObjects,  Shader::MAX_SPOT_LIGHTS >::ApplyLights(
+        spotLights_,  *shader_, 2 + spotLights_.size(), spotLights_.size());
     
     RenderScene(*shader_, /*depthOnly=*/false);
 }

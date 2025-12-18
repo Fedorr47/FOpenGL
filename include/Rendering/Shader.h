@@ -62,6 +62,8 @@ public:
     SpotLightUniformObjects SpotLights[MAX_SPOT_LIGHTS]{};
     GLint UniSpotLightCount = -1;
 
+    OmniShadowMapUniformObjects OmniShadowMap[MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS]{};
+
 private:
     bool ResetProgram();
     bool AddShaderFromSource(const std::string& src, GLenum type);

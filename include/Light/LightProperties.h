@@ -69,6 +69,12 @@ struct SpotLightUniformObjects : PointLightUniformObjects {
     GLint Edge{-1};
 };
 
+struct OmniShadowMapUniformObjects
+{
+    GLint ShadowMap{-1};
+    GLint farPlane{-1};
+};
+
 template<typename T>
 struct LightTraits;
 

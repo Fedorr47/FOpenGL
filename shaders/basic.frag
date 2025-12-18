@@ -11,6 +11,7 @@ struct DirectionalLight { Light base; vec3 direction; };
 struct PointLight { Light base; vec3 position; float constant; float linear; float exponent; };
 struct SpotLight { PointLight base; vec3 direction; float edge; };
 struct Material { float specularIntensity; float shininess; };
+struct OmniShadowMap { samplerCube shadowMap; float farPlane; }; 
 
 const int MAX_POINT_LIGHTS = 8;
 const int MAX_SPOT_LIGHTS  = 8;
@@ -26,6 +27,15 @@ uniform vec3 eyePosition;
 
 uniform sampler2D theTexture;
 uniform sampler2D directionalShadowMap;
+uniform OmniShadowMap OmniShadowMaps[MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS];
+
+vec3 sampleOffsetDirections[20] = vec3[](
+vec3( 1, 1, 1), vec3( 1,-1, 1), vec3(-1,-1, 1), vec3(-1, 1, 1),
+vec3( 1, 1,-1), vec3( 1,-1,-1), vec3(-1,-1,-1), vec3(-1, 1,-1),
+vec3( 1, 1, 0), vec3( 1,-1, 0), vec3(-1,-1, 0), vec3(-1, 1, 0),
+vec3( 1, 0, 1), vec3(-1, 0, 1), vec3( 1, 0,-1), vec3(-1, 0,-1),
+vec3( 0, 1, 1), vec3( 0,-1, 1), vec3( 0,-1,-1), vec3( 0, 1,-1)
+);
 
 vec3 ApplyLight(Light light, vec3 L, vec3 N, vec3 V)
 {
@@ -67,6 +77,37 @@ float CalcDirectionalShadowFactor(DirectionalLight light)
     return pcfShadow(directionalShadowMap, proj, bias);
 }
 
+float CalcOmniShadowFactor(vec3 lightPos, int shadowIndex)
+{
+    vec3 fragToLight = FragPos - lightPos;
+    float currentDepth = length(fragToLight);
+
+    float farPlane = OmniShadowMaps[shadowIndex].farPlane;
+
+    float shadow = 0.0;
+    float bias = 0.15; // как в туторе (потом подстроишь)
+    int samples = 20;
+
+    float viewDistance = length(eyePosition - FragPos);
+    float diskRadius = (1.0 + (viewDistance / farPlane)) / 25.0;
+
+    for (int i = 0; i < samples; ++i)
+    {
+        float closestDepth = texture(
+        OmniShadowMaps[shadowIndex].shadowMap,
+        fragToLight + sampleOffsetDirections[i] * diskRadius
+        ).r;
+
+        closestDepth *= farPlane;
+
+        if (currentDepth - bias > closestDepth)
+        shadow += 1.0;
+    }
+
+    shadow /= float(samples);
+    return shadow;
+}
+
 vec4 CalcDirectional(float shadow)
 {
     vec3 L = normalize(-directionalLight.direction);
@@ -80,44 +121,61 @@ vec4 CalcDirectional(float shadow)
     return vec4(lit, 1.0);
 }
 
-vec3 CalcPointLight(PointLight pLight)
+vec3 CalcPointLight(PointLight pLight, float shadow)
 {
     vec3 V = normalize(eyePosition - FragPos);
     vec3 N = normalize(Normal);
+
     vec3 L = pLight.position - FragPos;
     float d = length(L);
     L /= max(d, 1e-6);
+
     vec3 c = ApplyLight(pLight.base, L, N, V);
+
     float atten = pLight.constant + pLight.linear * d + pLight.exponent * d * d;
-    return c / max(atten, 1e-4);
+    c /= max(atten, 1e-4);
+    
+    vec3 ambient = pLight.base.colour * pLight.base.ambientIntensity;
+    vec3 ds = c - ambient;
+    return ambient + (1.0 - shadow) * ds;
 }
 
 vec4 CalcPointLights()
 {
     vec3 total = vec3(0.0);
     for (int i = 0; i < pointLightCount; ++i)
-    total += CalcPointLight(pointLights[i]);
+    {
+        float shadow = CalcOmniShadowFactor(pointLights[i].position, i);
+        total += CalcPointLight(pointLights[i], shadow);
+    }
     return vec4(total, 1.0);
 }
 
-vec3 CalcSpotLight(SpotLight sLight)
+vec3 CalcSpotLight(SpotLight sLight, int shadowIndex)
 {
-    vec3 L = normalize(FragPos - sLight.base.position);
+    vec3 toFrag = normalize(FragPos - sLight.base.position);
+
     vec3 D = normalize(sLight.direction);
-    float sl = dot(D, L);
+    float sl = dot(D, toFrag);
+
     if (sl <= sLight.edge) return vec3(0.0);
 
     float denom = max(1.0 - sLight.edge, 1e-6);
     float spotFactor = clamp((sl - sLight.edge) / denom, 0.0, 1.0);
 
-    return CalcPointLight(sLight.base) * spotFactor;
+    float shadow = CalcOmniShadowFactor(sLight.base.position, shadowIndex);
+
+    return CalcPointLight(sLight.base, shadow) * spotFactor;
 }
 
 vec4 CalcSpotLights()
 {
     vec3 total = vec3(0.0);
     for (int i = 0; i < spotLightCount; ++i)
-    total += CalcSpotLight(spotLights[i]);
+    {
+        int shadowIndex = MAX_POINT_LIGHTS + i;
+        total += CalcSpotLight(spotLights[i], shadowIndex);
+    }
     return vec4(total, 1.0);
 }
 

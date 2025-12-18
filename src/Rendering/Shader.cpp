@@ -130,6 +130,8 @@ bool Shader::LinkAndReflect()
         program_ = 0;
         return false;
     }
+    
+    ReflectUniforms();
 
     glValidateProgram(program_);
     glGetProgramiv(program_, GL_VALIDATE_STATUS, &ok);
@@ -139,8 +141,7 @@ bool Shader::LinkAndReflect()
         glGetProgramInfoLog(program_, 2048, &n, log);
         // std::cerr << "Validate error:\n" << log << "\n";
     }
-
-    ReflectUniforms();
+    
     return true;
 }
 
@@ -194,7 +195,7 @@ void Shader::ReflectUniforms()
         SpotLights[i].Direction        = get((b + "direction").c_str());
         SpotLights[i].Edge             = get((b + "edge").c_str());
     }
-
+    
     // omni / point light shadow map (cubemap)
     uniOmniLightPos_ = get("lightPos");
     uniOmniFarPlane_ = get("farPlane");
@@ -202,6 +203,13 @@ void Shader::ReflectUniforms()
     {
         std::string n = "lightMatrices[" + std::to_string(i) + "]";
         uniLightMatrices_[i] = get(n.c_str());
+    }
+
+    for (int i = 0; i < MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS; ++i)
+    {
+        std::string b = "OmniShadowMaps[" + std::to_string(i) + "].";
+        OmniShadowMap[i].ShadowMap = get((b + "shadowMap").c_str());
+        OmniShadowMap[i].farPlane = get((b + "farPlane").c_str());
     }
 }
 

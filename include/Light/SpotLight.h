@@ -1,30 +1,26 @@
 #pragma once
-#include "Light/Light.h" 
+#include "PointLight.h"
 #include "Light/LightProperties.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
 
-class SpotLight : public Light<SpotLightProperties, SpotLightUniformObjects>
+class SpotLight : public PointLightBase<SpotLight>
 {
 public:
-    using Base = Light<SpotLightProperties, SpotLightUniformObjects>;
-
-    SpotLight() = default;
-
-    explicit SpotLight(const SpotLightProperties& p) : Base(p) {
-        updateDerived();
+    SpotLight(const PropsType& p)
+    {
+        SetProperties(p);
     }
+    
+    void UseLight(const UniformType& u) const override
+    {
+        Mixin::UseLight(u);
 
-    void SetProperties(const SpotLightProperties& p) override {
-        Base::SetProperties(p);
-        updateDerived();
-    }
+        const auto& Props = this->GetLightProperties();
 
-    void UseLight(const SpotLightUniformObjects& u) const override {
-        Base::UseLight(u);
-        
         if (u.Position  != (GLuint)-1)
             glUniform3f(u.Position, Props.Position.x, Props.Position.y, Props.Position.z);
         if (u.Constant  != (GLuint)-1)
@@ -41,15 +37,27 @@ public:
             glUniform1f(u.Edge, Props.ProcEdge);
     }
 
-    void SetFlash(glm::vec3 inPosition, glm::vec3 inDirection)
+    void SetProperties(const SpotLightProperties& p) override
     {
-        Props.Position = inPosition;
-        Props.Direction = inDirection;
-        updateDerived();
+        PointLightBase<SpotLight>::SetProperties(p);
+        auto& Props = Mixin::GetLightProperties();
+        
+        Props.Direction = p.Direction;
+        Props.Edge = p.Edge;
+        Props.ProcEdge = std::cos(glm::radians(p.Edge));
+
+        if (Props.Direction.length() > 0.0f)
+        {
+            hasDir_  = true;
+        }
     }
 
-private:
-    void updateDerived() {
+    void SetFlash(glm::vec3 inPosition, glm::vec3 inDirection)
+    {
+        auto& Props = Mixin::GetLightProperties();
+        Props.Position = inPosition;
+        Props.Direction = inDirection;
+
         Props.ProcEdge = std::cos(glm::radians(Props.Edge));
         normDir_  = glm::normalize(Props.Direction);
         if (Props.Direction.length() > 0.0f)
@@ -57,7 +65,8 @@ private:
             hasDir_  = true;
         }
     }
-    
+
     glm::vec3 normDir_{0.0f, -1.0f, 0.0f};
     bool hasDir_{false};
 };
+

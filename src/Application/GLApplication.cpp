@@ -223,6 +223,7 @@ void GLApplication::DrawUI()
     ImGuiHandler::DrawPointLightsGui(
         pointLights_,
         static_cast<int>(Shader::MAX_POINT_LIGHTS));
+    ImGuiHandler::DrawSpotLightsGui(spotLights_, static_cast<int>(Shader::MAX_SPOT_LIGHTS));
     ImGuiHandler::DrawModelManipulatorGui(models_);
 
     ImGui::Render();
@@ -270,7 +271,7 @@ void GLApplication::DrawModels(glm::mat4& model, Shader& sh, bool depthOnly)
 
 void GLApplication::DirectionalShadowMapPass(std::shared_ptr<DirectionalLight> light)
 {
-    auto smap = light->GetProperties().shadowMapPtr;
+    auto smap = light->GetLightProperties().shadowMapPtr;
     directionalShadowshader_->Use();
     
     glViewport(0, 0, smap->GetShadowWidth(), smap->GetShadowHeight());
@@ -290,10 +291,10 @@ void GLApplication::DirectionalShadowMapPass(std::shared_ptr<DirectionalLight> l
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-template <typename Properties, typename Uniforms>
-void GLApplication::OmniShadowMapPass(std::shared_ptr<Light<Properties, Uniforms>> light)
+template <typename T>
+void GLApplication::OmniShadowMapPass(std::shared_ptr<T> light)
 {
-    auto smap = light->GetProperties().shadowMapPtr;
+    auto smap = light->GetLightProperties().shadowMapPtr;
 
     omniShadowshader_->Use();
     glViewport(0, 0, smap->GetShadowWidth(), smap->GetShadowHeight());
@@ -303,11 +304,11 @@ void GLApplication::OmniShadowMapPass(std::shared_ptr<Light<Properties, Uniforms
     glCullFace(GL_FRONT);
     
     if (omniShadowshader_->GetOmniLightPos() != -1) {
-        const auto& pos = light->GetProperties().Position;
+        const auto& pos = light->GetLightProperties().Position;
         glUniform3f(omniShadowshader_->GetOmniLightPos(), pos.x, pos.y, pos.z);
     }
     if (omniShadowshader_->GetOmniFarPlane() != -1) {
-        glUniform1f(omniShadowshader_->GetOmniFarPlane(), light->GetProperties().farPlane); 
+        glUniform1f(omniShadowshader_->GetOmniFarPlane(), light->GetLightProperties().farPlane); 
     }
     
     omniShadowshader_->SetLightMatrices(light->CalculateLightTransformCube());
@@ -335,13 +336,15 @@ void GLApplication::RenderPass()
     glUniform1i(shader_->UniSpotLightCount,  (GLint)spotLights_.size());
     shader_->SetDirectionalLightTransform(dirLight_->CalculateLightTransform().get());
 
-    dirLight_->GetProperties().shadowMapPtr->Read(GL_TEXTURE1);
+    dirLight_->GetLightProperties().shadowMapPtr->Read(GL_TEXTURE1);
     shader_->SetTexture(0);                  // diffuse sampler -> unit 0
     shader_->SetDirectionalShadowMap(1);     // shadow sampler  -> unit 1
 
     LightsApplier<PointLight, PointLightUniformObjects, Shader::MAX_POINT_LIGHTS>::ApplyLights(pointLights_, *shader_);
     if (!spotLights_.empty())
+    {
         spotLights_[0]->SetFlash(camera_->GetPosition(), camera_->GetDirection());
+    }
     LightsApplier<SpotLight,  SpotLightUniformObjects,  Shader::MAX_SPOT_LIGHTS >::ApplyLights(spotLights_,  *shader_);
     
     RenderScene(*shader_, /*depthOnly=*/false);
@@ -412,11 +415,11 @@ void GLApplication::Run()
         DirectionalShadowMapPass(dirLight_);
         for (size_t i = 0; i < pointLights_.size(); ++i)
         {
-            OmniShadowMapPass<PointLightProperties, PointLightUniformObjects>(pointLights_[i]);
+            OmniShadowMapPass(pointLights_[i]);
         }
         for (size_t i = 0; i < spotLights_.size(); ++i)
         {
-            OmniShadowMapPass<SpotLightProperties, SpotLightUniformObjects>(spotLights_[i]);
+            OmniShadowMapPass(spotLights_[i]);
         }
         RenderPass();
         DrawUI();

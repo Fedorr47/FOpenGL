@@ -68,3 +68,30 @@ struct SpotLightUniformObjects : PointLightUniformObjects {
     GLint ProcEdge{-1};
     GLint Edge{-1};
 };
+
+template<typename T>
+struct LightTraits;
+
+template<>
+struct LightTraits<class DirectionalLight>
+{
+    using Props = DirectionalLightProperties;
+    using UniformObjects = DirectionalLightUniformObjects;
+    static constexpr bool HasOmniShadow  = true;
+};
+
+template<>
+struct LightTraits<class PointLight>
+{
+    using Props = PointLightProperties;
+    using UniformObjects = PointLightUniformObjects;
+    static constexpr bool HasOmniShadow  = true;
+};
+
+template<>
+struct LightTraits<class SpotLight>
+{
+    using Props = SpotLightProperties;
+    using UniformObjects = SpotLightUniformObjects;
+    static constexpr bool HasOmniShadow  = true;
+};

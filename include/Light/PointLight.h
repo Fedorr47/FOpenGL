@@ -1,64 +1,88 @@
 #pragma once
 #include <memory>
-#include <span>
 
+#include <glm/glm.hpp>
 #include "Light/Light.h"
 #include "Light/LightProperties.h"
 #include "Rendering/Shadow/OmniShadowMap.h"
 
 class Shader;
 
-class PointLight
-  : public Light<PointLightProperties, PointLightUniformObjects>
+template<class Derived>
+class PointLightBase
+    : public Light
+    , public LightTypeMixin<Derived, LightTraits>
 {
 public:
-    using Base = Light<PointLightProperties, PointLightUniformObjects>;
-    PointLight() = default;
-    explicit PointLight(const PointLightProperties& p) : Base(p){ }
+    using Mixin     = LightTypeMixin<Derived, LightTraits>;
+    using PropsType = typename Mixin::PropsType;
+    using UniformType  = typename Mixin::UniformType;
     
-    void UseLight(const PointLightUniformObjects& u) const override {
-        Base::UseLight(u);
-        glUniform3f(u.Position, Props.Position.x, Props.Position.y, Props.Position.z);
-        glUniform1f(u.Constant, Props.Constant);
-        glUniform1f(u.Linear,   Props.Linear);
-        glUniform1f(u.Exponent, Props.Exponent);
+    PointLightBase() = default;
+    PointLightBase(const PropsType& inProps)
+    {
+        SetProperties(inProps);
+    }
+    
+    void UseLight(const UniformType& u) const override
+    {
+        Mixin::UseLight(u);
+
+        const auto& p = Mixin::GetLightProperties();
+        glUniform3f(u.Position, p.Position.x, p.Position.y, p.Position.z);
+        glUniform1f(u.Constant, p.Constant);
+        glUniform1f(u.Linear,   p.Linear);
+        glUniform1f(u.Exponent, p.Exponent);
     }
 
-    void SetProperties(const PointLightProperties& p) override
+    const CommonLightProperties* GetProperties() const
     {
-        float aspect =
-            static_cast<float>(Props.shadowMapPtr->GetShadowWidth()) /
-                static_cast<float>(Props.shadowMapPtr->GetShadowHeight());
+        return &Mixin::GetLightProperties();
+    }
+
+    void SetProperties(const PropsType& p) override
+    {
+        Mixin::SetProperties(p);
+        auto Props = Mixin::GetLightProperties();
+        
+        float aspect = 1.0f;
+
+        if (Props.shadowMapPtr)
+        {
+            const float w = float(Props.shadowMapPtr->GetShadowWidth());
+            const float h = float(Props.shadowMapPtr->GetShadowHeight());
+            if (w > 0.0f && h > 0.0f)
+                aspect = w / h;
+        }
+
         Props.lightProj = glm::perspective(glm::radians(90.0f), aspect, Props.nearPlane, Props.farPlane);
     }
 
-    float GetFarPlane() const { return Props.farPlane; }
+    float GetFarPlane() const { return Mixin::GetLightProperties().farPlane; }
     
     std::vector<glm::mat4> CalculateLightTransformCube() const override
     {
-        std::vector<glm::mat4> lightMatrices;
+        const auto& p = Mixin::GetLightProperties();
+        const glm::vec3& pos = p.Position;
 
-        lightMatrices.push_back(Props.lightProj * glm::lookAt(
-            Props.Position,
-            Props.Position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        lightMatrices.push_back(Props.lightProj * glm::lookAt(
-            Props.Position,
-            Props.Position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        
-        lightMatrices.push_back(Props.lightProj * glm::lookAt(
-            Props.Position,
-            Props.Position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-        lightMatrices.push_back(Props.lightProj * glm::lookAt(
-            Props.Position,
-            Props.Position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
+        return {
+            // +X / -X
+            p.lightProj * glm::lookAt(pos, pos + glm::vec3( 1, 0, 0), glm::vec3(0,-1, 0)),
+            p.lightProj * glm::lookAt(pos, pos + glm::vec3(-1, 0, 0), glm::vec3(0,-1, 0)),
 
-        lightMatrices.push_back(Props.lightProj * glm::lookAt(
-            Props.Position,
-            Props.Position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        lightMatrices.push_back(Props.lightProj * glm::lookAt(
-            Props.Position,
-            Props.Position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+            // +Y / -Y
+            p.lightProj * glm::lookAt(pos, pos + glm::vec3(0, 1, 0), glm::vec3(0, 0, 1)),
+            p.lightProj * glm::lookAt(pos, pos + glm::vec3(0,-1, 0), glm::vec3(0, 0,-1)),
 
-        return lightMatrices;
+            // +Z / -Z
+            p.lightProj * glm::lookAt(pos, pos + glm::vec3(0, 0, 1), glm::vec3(0,-1, 0)),
+            p.lightProj * glm::lookAt(pos, pos + glm::vec3(0, 0,-1), glm::vec3(0,-1, 0))
+        };
     }
+};
+
+class PointLight : public PointLightBase<PointLight>
+{
+public:
+    using PointLightBase<PointLight>::PointLightBase;
 };

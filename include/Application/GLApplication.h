@@ -50,8 +50,8 @@ private:
     void DrawPyramids(glm::mat4& model);
     void DrawModels(glm::mat4& model, Shader& sh, bool depthOnly);
     void DirectionalShadowMapPass(std::shared_ptr<DirectionalLight> light);
-    template <typename Properties, typename Uniforms>
-    void OmniShadowMapPass(std::shared_ptr<Light<Properties, Uniforms>> light);
+    template <class T>
+    void OmniShadowMapPass(std::shared_ptr<T> light);
     void RenderPass();
 
 private:

@@ -1,11 +1,13 @@
 #pragma once
+
 #include <concepts>
 #include <glm/glm.hpp>
 #include <GL/glew.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <memory>
 
-#include "Rendering/Shadow/ShadowMap.h"
+#include "Light/LightProperties.h"
 
 template<class P>
 concept LightPropsType = requires(P p) {
@@ -21,27 +23,36 @@ concept UniformObjectsType = requires(U u) {
     { u.DiffuseIntensity } -> std::convertible_to<GLint>;
 };
 
-template<LightPropsType P, UniformObjectsType U>
-class Light {
+class Light
+{
 public:
     Light() = default;
-    explicit Light(const P& in) : Props(in){}
     virtual ~Light() = default;
-
-    virtual void UseLight(const U& u) const {
-        glUniform3f(u.Colour, Props.Colour.r, Props.Colour.g, Props.Colour.b);
-        glUniform1f(u.AmbientIntensity, Props.AmbientIntensity);
-        glUniform1f(u.DiffuseIntensity, Props.DiffuseIntensity);
-    }
-    // TODO: Maybe need to return std::optional
-    virtual void SetProperties(const P& p) { Props = p; }
+    
     virtual std::unique_ptr<glm::mat4> CalculateLightTransform() const { return nullptr; }
     virtual std::vector<glm::mat4> CalculateLightTransformCube() const { return std::vector<glm::mat4>{};}
-    
-    P&       GetProperties()       { return Props; }
-    const P& GetProperties() const { return Props; }
-    
+};
 
-protected:
-    P Props{};
+template<class Derived, template<class> class Traits>
+class LightTypeMixin
+{
+public:
+    using TraitsT      = Traits<Derived>;
+    using PropsType    = typename TraitsT::Props;
+    using UniformType  = typename TraitsT::UniformObjects;
+
+    PropsType Properties{};
+
+    PropsType&       GetLightProperties()       { return Properties; }
+    const PropsType& GetLightProperties() const { return Properties; }
+
+    virtual void SetProperties(const PropsType& p) { Properties = p; }
+    
+    virtual void UseLight(const UniformType& u) const
+    {
+        const auto& p = Properties;
+        glUniform3f(u.Colour, p.Colour.r, p.Colour.g, p.Colour.b);
+        glUniform1f(u.AmbientIntensity, p.AmbientIntensity);
+        glUniform1f(u.DiffuseIntensity, p.DiffuseIntensity);
+    }
 };

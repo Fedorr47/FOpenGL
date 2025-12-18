@@ -15,24 +15,30 @@ struct LightsApplier
                             unsigned shadowIndexOffset)
     {
         auto uniforms = shader.GetUniformArray<LightUniformType>();
-        if (!uniforms) return;
+        if (!uniforms)
+        {
+            return;
+        }
 
         const int count = std::min<int>((int)lights.size(), MAX_LIGHTS);
 
         for (int i = 0; i < count; ++i)
         {
-            auto& L = lights[i];
-            if (!L) continue;
+            auto& Light = lights[i];
+            if (!Light)
+            {
+                continue;
+            }
             
-            L->UseLight(uniforms[i]);
+            Light->UseLight(uniforms[i]);
             
-            const unsigned slot = baseTextureUnit + (unsigned)i;
-            L->GetLightProperties().shadowMapPtr->Read(GL_TEXTURE0 + slot);
+            const unsigned slot = baseTextureUnit + static_cast<unsigned>(i);
+            Light->GetLightProperties().shadowMapPtr->Read(GL_TEXTURE0 + slot);
             
-            const unsigned idx = shadowIndexOffset + (unsigned)i;
+            const unsigned idx = shadowIndexOffset + static_cast<unsigned>(i);
 
-            glUniform1i(shader.OmniShadowMap[idx].ShadowMap, (GLint)slot);
-            glUniform1f(shader.OmniShadowMap[idx].farPlane, L->GetLightProperties().farPlane);
+            glUniform1i(shader.OmniShadowMap[idx].ShadowMap, static_cast<GLint>(slot));
+            glUniform1f(shader.OmniShadowMap[idx].farPlane, Light->GetLightProperties().farPlane);
         }
     }
 };

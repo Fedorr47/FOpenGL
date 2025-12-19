@@ -46,6 +46,7 @@ public:
 private:
     void CreateScene();
     void RenderScene(Shader& sh, bool depthOnly);
+    void ChangeViewMode();
     void DrawUI();
     void DrawPyramids(glm::mat4& model);
     void DrawModels(glm::mat4& model, Shader& sh, bool depthOnly);

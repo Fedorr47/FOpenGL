@@ -374,12 +374,28 @@ void GLApplication::RenderScene(Shader& sh, bool depthOnly)
     DrawModels(model, sh, depthOnly);
 }
 
+void GLApplication::ChangeViewMode()
+{
+    static bool prevV = false;      // previous key state
+    static bool wire = false;       // current mode (toggle)
+
+    const bool v = window_->GetKeys()[GLFW_KEY_V];
+
+    // toggle only on key press edge
+    if (v && !prevV)
+    {
+        wire = !wire;
+    }
+
+    glPolygonMode(GL_FRONT_AND_BACK, wire ? GL_LINE : GL_FILL);
+
+    prevV = v;
+}
+
 void GLApplication::Run()
 {
     CreateScene();
     clock_->resetTime();
-
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     bool prevTab=false;
     while (!glfwWindowShouldClose(window_->GetWindow())) {
@@ -390,6 +406,7 @@ void GLApplication::Run()
             gameMode_ = !gameMode_;
         }
         SetGameInputMode(gameMode_);
+        ChangeViewMode();
 
         prevTab = tab;
 

@@ -124,7 +124,7 @@ void Model::LoadMaterials(const aiScene* scene)
                 int idx = std::string(texturePath.data).rfind("\\");
                 std::string filename = std::string(texturePath.data).substr(idx + 1);
                 
-                _textureList[i] = std::make_shared<Texture>("../assets/textures/" + filename);
+                _textureList[i] = std::make_shared<Texture>("assets/textures/" + filename);
                 if (!_textureList[i]->LoadA())
                 {
                     _textureList[i] = nullptr;
@@ -134,7 +134,7 @@ void Model::LoadMaterials(const aiScene* scene)
 
         if (!_textureList[i])
         {
-            _textureList[i] = std::make_shared<Texture>("../assets/textures/plain.png");
+            _textureList[i] = std::make_shared<Texture>("assets/textures/plain.png");
             _textureList[i]->LoadA();
         }
     }

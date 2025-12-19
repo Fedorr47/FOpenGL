@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include "Camera/Camera.h"
 #include "Light/PointLight.h"
 #include "Light/SpotLight.h"

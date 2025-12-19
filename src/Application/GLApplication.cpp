@@ -102,20 +102,20 @@ void GLApplication::AddSpotLights()
 void GLApplication::CreateShaders()
 {
     shader_ = std::make_unique<Shader>();
-    if (!shader_->CreateFromFiles("../shaders/basic.vert", "../shaders/basic.frag")) {
+    if (!shader_->CreateFromFiles("shaders/basic.vert", "shaders/basic.frag")) {
         throw std::exception("Failed to create shader.\n");
     }
 
     directionalShadowshader_ = std::make_unique<Shader>();
-    if (!directionalShadowshader_->CreateFromFiles("../shaders/directional_shadow_map.vert",
-        "../shaders/directional_shadow_map.frag")) {
+    if (!directionalShadowshader_->CreateFromFiles("shaders/directional_shadow_map.vert",
+        "shaders/directional_shadow_map.frag")) {
         throw std::exception("Failed to create shadow shader.\n");
         }
 
     omniShadowshader_  = std::make_unique<Shader>();
-    if (!omniShadowshader_->CreateFromFiles("../shaders/omni_directional_shadow_map.vert",
-        "../shaders/omni_directional_shadow_map.frag",
-        "../shaders/omni_directional_shadow_map.geom")) {
+    if (!omniShadowshader_->CreateFromFiles("shaders/omni_directional_shadow_map.vert",
+        "shaders/omni_directional_shadow_map.frag",
+        "shaders/omni_directional_shadow_map.geom")) {
         throw std::exception("Failed to create shadow shader.\n");
         }
 }
@@ -139,7 +139,7 @@ void GLApplication::CreateTextures()
 void GLApplication::AddModels()
 {
     models_.push_back(std::make_shared<Model>());
-    models_.back()->LoadModel("../assets/models/Quarren Coyote Ship.obj");
+    models_.back()->LoadModel("assets/models/Seahawk.obj");
     // TODO: Debug - delete later 
     models_.back()->SetScale({0.06f,0.06f,0.06f});
 }
@@ -349,7 +349,7 @@ void GLApplication::RenderPass()
     ::ApplyLights(pointLights_, *shader_, baseOmniTex, /*shadowIndexOffset=*/0);
     if (!spotLights_.empty())
     {
-        spotLights_[0]->SetFlash(camera_->GetPosition(), camera_->GetDirection());
+        //spotLights_[0]->SetFlash(camera_->GetPosition(), camera_->GetDirection());
     }
     LightsApplier<SpotLight, SpotLightUniformObjects, Shader::MAX_SPOT_LIGHTS>
     ::ApplyLights(spotLights_, *shader_,

@@ -30,6 +30,13 @@ namespace ImGuiHandler
         p.Constant = 1.0f;
         p.Linear   = 0.09f;
         p.Exponent = 0.032f;
+        
+        p.nearPlane = 0.01f;
+        p.farPlane  = 100.0f;
+        if (p.shadowMapPtr)
+        {
+            p.shadowMapPtr->Initialize(1024, 1024);
+        }
         return p;
     }
 
@@ -47,6 +54,13 @@ namespace ImGuiHandler
         p.Constant = 1.0f;
         p.Linear   = 0.09f;
         p.Exponent = 0.032f;
+        p.nearPlane = 0.01f;
+        p.farPlane  = 100.0f;
+
+        if (p.shadowMapPtr) {
+            p.shadowMapPtr->Initialize(1024, 1024);
+        }
+
         return p;
     }
 

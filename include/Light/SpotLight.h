@@ -45,6 +45,9 @@ public:
         Props.Direction = p.Direction;
         Props.Edge = p.Edge;
         Props.ProcEdge = std::cos(glm::radians(p.Edge));
+        
+        Props.farPlane = p.farPlane;
+        Props.nearPlane = p.nearPlane;
 
         if (Props.Direction.length() > 0.0f)
         {

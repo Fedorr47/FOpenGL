@@ -5,6 +5,20 @@
 
 static GLWindow* gWindowForCallbacks = nullptr;
 
+static void PrintGLInfo()
+{
+    auto s = [](GLenum name) -> const char*
+    {
+        const GLubyte* p = glGetString(name);
+        return p ? reinterpret_cast<const char*>(p) : "<null>";
+    };
+
+    std::cout << "GL_VENDOR    : " << s(GL_VENDOR)    << "\n";
+    std::cout << "GL_RENDERER  : " << s(GL_RENDERER)  << "\n";
+    std::cout << "GL_VERSION   : " << s(GL_VERSION)   << "\n";
+    std::cout << "GLSL_VERSION : " << s(GL_SHADING_LANGUAGE_VERSION) << "\n";
+}
+
 GLWindow::GLWindow(int width, int height, const char* title)
 {
     if (!glfwInit()) throw std::runtime_error("glfwInit failed");
@@ -44,6 +58,8 @@ GLWindow::GLWindow(int width, int height, const char* title)
     glfwSetWindowUserPointer(window_, this);
     gWindowForCallbacks = this;
     CreateCallbacks();
+    
+    PrintGLInfo();
 }
 
 GLWindow::~GLWindow()

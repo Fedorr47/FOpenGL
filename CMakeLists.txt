@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2)
+cmake_minimum_required(VERSION 4.0)
 project(FOpenGL LANGUAGES CXX)
 
 include(FetchContent)
@@ -174,6 +174,7 @@ add_library(FOpenGL STATIC
   src/Rendering/Shadow/ShadowMap.cpp
   src/Rendering/Shadow/OmniShadowMap.cpp
   src/Texture/Texture.cpp
+  src/Skybox/Skybox.cpp
   src/Model/Mesh.cpp
   src/Model/Model.cpp
   src/Camera/Camera.cpp

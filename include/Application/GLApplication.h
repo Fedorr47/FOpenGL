@@ -20,6 +20,7 @@ class SpotLight;
 class GameClock;
 class DirectionalLight;
 class Model;
+class Skybox;;
 
 namespace Assimp
 {
@@ -45,6 +46,7 @@ public:
 
 private:
     void CreateScene();
+    void CreateSkybox();
     void RenderScene(Shader& sh, bool depthOnly);
     void ChangeViewMode();
     void DrawUI();
@@ -70,6 +72,8 @@ private:
     std::vector<std::unique_ptr<Mesh>> meshes_;
     std::vector<std::shared_ptr<Material>> materials_;
     std::vector<std::unique_ptr<Texture>> textures_;
+
+    std::unique_ptr<Skybox> skybox_;
 
     std::vector<std::shared_ptr<Model>> models_;
 

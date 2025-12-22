@@ -20,6 +20,7 @@
 #include "Model/Model.h"
 // Assimp
 #include "assimp/Importer.hpp"
+#include "Skybox/Skybox.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -52,7 +53,7 @@ GLApplication::~GLApplication()
 void GLApplication::CreateDirectionalLight()
 {
     // Lights
-    DirectionalLightProperties dlp;
+    DirectionalLightProperties dlp{};
     dlp.Colour = {1,1,1};
     dlp.AmbientIntensity = 0.1f;
     dlp.DiffuseIntensity = 0.6f;
@@ -64,7 +65,7 @@ void GLApplication::CreateDirectionalLight()
 
 void GLApplication::AddPointLights()
 {
-    PointLightProperties plp;
+    PointLightProperties plp{};
 
     // TODO: Point lights needed to be optimized 
     plp.Colour = {1,1,1};
@@ -135,6 +136,19 @@ void GLApplication::CreateTextures()
     textures_.push_back(std::move(tex3));
 }
 
+void GLApplication::CreateSkybox()
+{
+    std::vector<std::string> skyBoxFaces;
+    skyBoxFaces.push_back("assets/textures/skybox/cupertin-lake_rt.tga");
+    skyBoxFaces.push_back("assets/textures/skybox/cupertin-lake_lf.tga");
+    skyBoxFaces.push_back("assets/textures/skybox/cupertin-lake_up.tga");
+    skyBoxFaces.push_back("assets/textures/skybox/cupertin-lake_dn.tga");
+    skyBoxFaces.push_back("assets/textures/skybox/cupertin-lake_bk.tga");
+    skyBoxFaces.push_back("assets/textures/skybox/cupertin-lake_ft.tga");
+
+    skybox_ = std::make_unique<Skybox>(skyBoxFaces);
+}
+
 // TODO: Change to a method that get a path and properties
 void GLApplication::AddModels()
 {
@@ -192,6 +206,7 @@ void GLApplication::CreateScene()
     meshes_.push_back(std::move(m2));
 
     CreateTextures();
+    CreateSkybox();
 
     // Materials
     materials_.push_back(std::make_shared<Material>(1.0f,64.0f)); // shiny
@@ -325,17 +340,21 @@ void GLApplication::OmniShadowMapPass(std::shared_ptr<T> light)
 void GLApplication::RenderPass()
 {
     const unsigned baseOmniTex = 2;
-    
-    shader_->Use();
-
-    glUniformMatrix4fv(shader_->GetUniformProj(), 1, GL_FALSE, glm::value_ptr(projection_));
-    glUniformMatrix4fv(shader_->GetUniformView(), 1, GL_FALSE, glm::value_ptr(camera_->GetViewMatrix()));
-    glUniform3f(shader_->GetUniformEyePos(), camera_->GetPosition().x, camera_->GetPosition().y, camera_->GetPosition().z);
 
     glViewport(0, 0, window_->GetBufferWidth(), window_->GetBufferHeight());
     glClearColor(0,0,0,1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
+    glm::mat4 cameraViewMatrix = camera_->GetViewMatrix();
+    
+    skybox_->Draw(cameraViewMatrix, projection_);
+    
+    shader_->Use();
+
+    glUniformMatrix4fv(shader_->GetUniformProj(), 1, GL_FALSE, glm::value_ptr(projection_));
+    glUniformMatrix4fv(shader_->GetUniformView(), 1, GL_FALSE, glm::value_ptr(cameraViewMatrix));
+    glUniform3f(shader_->GetUniformEyePos(), camera_->GetPosition().x, camera_->GetPosition().y, camera_->GetPosition().z);
+
     dirLight_->UseLight(shader_->DirLight);
     glUniform1i(shader_->UniPointLightCount, (GLint)pointLights_.size());
     glUniform1i(shader_->UniSpotLightCount,  (GLint)spotLights_.size());

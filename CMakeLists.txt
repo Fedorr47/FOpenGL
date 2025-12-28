@@ -147,21 +147,20 @@ else()
 endif()
 
 set(GLEW_TARGET "")
-if (TARGET GLEW::GLEW)
-  set(GLEW_TARGET GLEW::GLEW)
+
+set(GLEW_TARGET "")
+if (TARGET GLEW::glew_s)
+  set(GLEW_TARGET GLEW::glew_s)
 elseif (TARGET glew_s)
   set(GLEW_TARGET glew_s)
 elseif (TARGET libglew_static)
   set(GLEW_TARGET libglew_static)
+elseif (TARGET GLEW::GLEW)
+  set(GLEW_TARGET GLEW::GLEW)
 elseif (TARGET glew)
   set(GLEW_TARGET glew)
 else()
   message(FATAL_ERROR "GLEW target not found")
-endif()
-
-# If we ended up with a static GLEW target, consumers need GLEW_STATIC
-if (GLEW_TARGET STREQUAL "glew_s" OR GLEW_TARGET STREQUAL "libglew_static")
-  add_compile_definitions(GLEW_STATIC=1)
 endif()
 
 # ---------------------------------------------
@@ -189,13 +188,36 @@ add_library(FOpenGL STATIC
   #src/Utils/AssetLoader.cpp
 )
 
+# If we ended up with a static GLEW target, consumers need GLEW_STATIC
+if (GLEW_TARGET MATCHES "glew_s|GLEW::glew_s|libglew_static")
+  target_compile_definitions(FOpenGL PUBLIC GLEW_STATIC)
+  if (TARGET imgui)
+    target_compile_definitions(imgui PUBLIC GLEW_STATIC)
+  endif()
+endif()
+
+# -----------------------------
+# GLEW include dir (submodule or FetchContent)
+# -----------------------------
+set(GLEW_INCLUDE_DIR "")
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/glew/include/GL/glew.h")
+  set(GLEW_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extern/glew/include")
+elseif (DEFINED glew_src_SOURCE_DIR AND EXISTS "${glew_src_SOURCE_DIR}/include/GL/glew.h")
+  set(GLEW_INCLUDE_DIR "${glew_src_SOURCE_DIR}/include")
+endif()
+
+if (GLEW_INCLUDE_DIR STREQUAL "")
+  message(FATAL_ERROR "GLEW headers not found (GL/glew.h). Check GLEW fetch/submodule.")
+endif()
+
+message(STATUS "GLEW include dir: ${GLEW_INCLUDE_DIR}")
+
+target_include_directories(FOpenGL PUBLIC "${GLEW_INCLUDE_DIR}")
+
 target_include_directories(FOpenGL
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
-
-target_include_directories(FOpenGL PUBLIC
-  "${CMAKE_CURRENT_SOURCE_DIR}/extern/glew/include"
 )
 
 # Headers for IDE convenience
@@ -254,6 +276,7 @@ if (WITH_IMGUI)
     # Link imgui into the engine lib
     target_link_libraries(FOpenGL PUBLIC imgui)
     target_compile_definitions(FOpenGL PUBLIC USE_IMGUI=1)
+	target_include_directories(imgui PUBLIC "${GLEW_INCLUDE_DIR}")
   else()
     message(STATUS "ImGui not found in extern/imgui. Building without UI.")
   endif()

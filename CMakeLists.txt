@@ -102,13 +102,15 @@ if (NOT HAVE_VCPKG_DEPS)
     set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
     add_subdirectory(extern/glew/build/cmake)
   else()
-    set(ONLY_LIBS   ON  CACHE BOOL "" FORCE)
-    set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
+	set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
     
     FetchContent_Declare(glew_src
-      URL https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.tgz
+      URL https://github.com/nigels-com/glew/releases/download/glew-2.3.0/glew-2.3.0.tgz
       SOURCE_SUBDIR build/cmake
     )
+	
+	set(ONLY_LIBS   ON  CACHE BOOL "" FORCE)
+    set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
     
     FetchContent_MakeAvailable(glew_src)
   endif()

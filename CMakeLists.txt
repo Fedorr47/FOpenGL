@@ -102,16 +102,15 @@ if (NOT HAVE_VCPKG_DEPS)
     set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
     add_subdirectory(extern/glew/build/cmake)
   else()
+    set(ONLY_LIBS   ON  CACHE BOOL "" FORCE)
+    set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
+    
     FetchContent_Declare(glew_src
       URL https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.tgz
+      SOURCE_SUBDIR build/cmake
     )
-    FetchContent_GetProperties(glew_src)
-    if (NOT glew_src_POPULATED)
-      FetchContent_Populate(glew_src)
-      set(ONLY_LIBS  ON CACHE BOOL "" FORCE)
-      set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
-      add_subdirectory("${glew_src_SOURCE_DIR}/build/cmake" "${glew_src_BINARY_DIR}")
-    endif()
+    
+    FetchContent_MakeAvailable(glew_src)
   endif()
 endif()
 
@@ -185,6 +184,7 @@ add_library(FOpenGL STATIC
   src/Materials/Material.cpp
   src/Materials/MaterialFactory.cpp
   src/ThirdParty/ImGuiHandler.cpp
+  #src/Utils/AssetLoader.cpp
 )
 
 target_include_directories(FOpenGL

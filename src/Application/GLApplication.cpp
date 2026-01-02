@@ -71,6 +71,8 @@ void GLApplication::CreateShaders()
     if (!shader_->CreateFromFiles("shaders/basic.vert", "shaders/basic.frag")) {
         throw std::exception("Failed to create shader.\n");
     }
+    
+    shader_->BindDefaultSamplers();
 
     directionalShadowshader_ = std::make_unique<Shader>();
     if (!directionalShadowshader_->CreateFromFiles("shaders/directional_shadow_map.vert",
@@ -209,7 +211,7 @@ void GLApplication::CreateScene()
 
     CreateTextures();
     CreateLightMarker();
-    //CreateSkybox();
+    CreateSkybox();
 
     // Materials
     materials_.push_back(std::make_shared<Material>(1.0f,64.0f)); // shiny
@@ -351,7 +353,7 @@ void GLApplication::RenderPass()
     
     glm::mat4 cameraViewMatrix = camera_->GetViewMatrix();
     
-    //skybox_->Draw(cameraViewMatrix, projection_);
+    skybox_->Draw(cameraViewMatrix, projection_);
     
     shader_->Use();
 

@@ -21,6 +21,8 @@ public:
     bool CreateGeometryFromFile(const std::filesystem::path& geometryShader);
 
     void Use() const;
+    
+    void BindDefaultSamplers() const;
 
     void SetTexture(GLuint textureUnit);
     void SetDirectionalShadowMap(GLuint textureUnit);

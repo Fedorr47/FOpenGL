@@ -12,9 +12,11 @@ Skybox::Skybox(const std::vector<std::string>& facesLocations)
     skyShader_->CreateFromFiles("shaders/skybox.vert", "shaders/skybox.frag");
     uniformProjection_ = skyShader_->GetUniformProj();
     uniformView_ = skyShader_->GetUniformView();
-
+    
     glGenTextures(1, &skyTextureId_);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyTextureId_);
+    
+    glUniform1i(glGetUniformLocation(skyTextureId_, "skybox"), 10);
 
     int width, height, bitDepth;
 
@@ -84,7 +86,8 @@ void Skybox::Draw(glm::mat4 viewMatrix, glm::mat4 projMatrix) const
     glUniformMatrix4fv(uniformView_, 1, GL_FALSE, glm::value_ptr(viewMatrix));
 
     // TODO: Maybe it should be change later to some other texture
-    glActiveTexture(GL_TEXTURE0);
+    constexpr int kSkyUnit = 10;
+    glActiveTexture(GL_TEXTURE0 + kSkyUnit);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyTextureId_);
 
     skyMesh_->Draw();

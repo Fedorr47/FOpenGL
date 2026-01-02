@@ -215,6 +215,32 @@ void Shader::ReflectUniforms()
     }
 }
 
+void Shader::BindDefaultSamplers() const
+{
+    Use();
+
+    // main material
+    if (uniTexture_ != -1)
+    {
+        glUniform1i(uniTexture_, 0);
+    }
+
+    // directional shadow
+    if (uniDirectionalShadowMap_ != -1)
+    {
+        glUniform1i(uniDirectionalShadowMap_, 1);
+    }
+
+    // omni shadow cube maps: unit 2.. (2+MAX-1)
+    for (int i = 0; i < MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS; ++i)
+    {
+        if (OmniShadowMap[i].ShadowMap != -1)
+        {
+            glUniform1i(OmniShadowMap[i].ShadowMap, 2 + i);
+        }
+    }
+}
+
 void Shader::Use() const
 {
     glUseProgram(program_);

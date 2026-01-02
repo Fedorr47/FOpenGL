@@ -188,6 +188,19 @@ add_library(FOpenGL STATIC
   #src/Utils/AssetLoader.cpp
 )
 
+target_include_directories(FOpenGL
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+)
+target_include_directories(FOpenGL PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+file(GLOB_RECURSE FOPENGL_HEADERS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
+)
+target_sources(FOpenGL PRIVATE ${FOPENGL_HEADERS})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source Files" FILES ${FOPENGL_HEADERS})
+
 # If we ended up with a static GLEW target, consumers need GLEW_STATIC
 if (GLEW_TARGET MATCHES "glew_s|GLEW::glew_s|libglew_static")
   target_compile_definitions(FOpenGL PUBLIC GLEW_STATIC)
@@ -214,19 +227,6 @@ endif()
 message(STATUS "GLEW include dir: ${GLEW_INCLUDE_DIR}")
 
 target_include_directories(FOpenGL PUBLIC "${GLEW_INCLUDE_DIR}")
-
-target_include_directories(FOpenGL
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
-
-# Headers for IDE convenience
-file(GLOB_RECURSE FOPENGL_HEADERS CONFIGURE_DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
-)
-target_sources(FOpenGL PRIVATE ${FOPENGL_HEADERS})
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${FOPENGL_HEADERS})
 
 # Shaders for IDE convenience
 file(GLOB_RECURSE FOPENGL_SHADERS CONFIGURE_DEPENDS
@@ -312,6 +312,59 @@ add_custom_command(TARGET FOpenGL_app POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           "${CMAKE_CURRENT_SOURCE_DIR}/assets"  "$<TARGET_FILE_DIR:FOpenGL_app>/assets"
 )
+
+add_custom_command(TARGET FOpenGL_app POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          "${CMAKE_SOURCE_DIR}/shaders" "$<TARGET_FILE_DIR:FOpenGL_app>/shaders"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          "${CMAKE_SOURCE_DIR}/assets"  "$<TARGET_FILE_DIR:FOpenGL_app>/assets"
+)
+
+if (WIN32)
+  set(LINK_RES_SCRIPT "${CMAKE_BINARY_DIR}/LinkResources.cmake")
+
+  file(WRITE "${LINK_RES_SCRIPT}" [=[
+# Inputs: SRC_DIR, BIN_DIR
+
+# Convert to native windows paths with backslashes
+file(TO_NATIVE_PATH "${SRC_DIR}" SRC_NATIVE)
+file(TO_NATIVE_PATH "${BIN_DIR}" BIN_NATIVE)
+
+foreach(name IN ITEMS assets shaders)
+  set(src_native "${SRC_NATIVE}\\${name}")
+  set(dst_native "${BIN_NATIVE}\\${name}")
+
+  # Remove old dst (dir/junction)
+  if (EXISTS "${dst_native}")
+    execute_process(COMMAND "${CMAKE_COMMAND}" -E rm -rf "${dst_native}")
+  endif()
+
+  # Try junction (usually no admin/devmode needed)
+  execute_process(
+    COMMAND cmd /c "mklink /J \"${dst_native}\" \"${src_native}\""
+    RESULT_VARIABLE rc
+    OUTPUT_VARIABLE out
+    ERROR_VARIABLE  err
+  )
+
+  if (NOT rc EQUAL 0)
+    message(WARNING "mklink /J failed for ${name} (rc=${rc}). out=[${out}] err=[${err}]  Falling back to copy.")
+    # Copy from SOURCE (use forward-slash path here is OK for CMake file ops)
+    file(COPY "${SRC_DIR}/${name}" DESTINATION "${BIN_DIR}")
+  endif()
+endforeach()
+]=])
+
+  add_custom_target(FOpenGL_link_resources ALL
+    COMMAND ${CMAKE_COMMAND}
+      -DSRC_DIR:PATH=${CMAKE_SOURCE_DIR}
+      -DBIN_DIR:PATH=${CMAKE_BINARY_DIR}
+      -P "${LINK_RES_SCRIPT}"
+    VERBATIM
+  )
+  add_dependencies(FOpenGL_app FOpenGL_link_resources)
+endif()
+
 
 if (WIN32 AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.21")
   set(COPY_RUNTIME_DEPS_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/copy_runtime_deps.cmake")

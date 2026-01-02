@@ -2,8 +2,6 @@
 #include "Application/GLApplication.h"
 #include <iostream>
 
-#define GLEW_STATIC
-
 #ifdef _MSC_VER
   #include <crtdbg.h>
   #define _CRTDBG_MAP_ALLOC

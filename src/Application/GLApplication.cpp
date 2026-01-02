@@ -1,4 +1,4 @@
-#include "Application/GLApplication.h"
+#include "GLApplication.h"
 
 // General headers
 #include <glm/gtc/matrix_transform.hpp>

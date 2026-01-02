@@ -39,7 +39,6 @@ void Camera::KeyControl(std::span<const bool> keys, float dt)
 
 void Camera::MouseControl(double deltaX, double deltaY, float dt)
 {
-    (void)dt;
     yawDeg_   += static_cast<float>(deltaX) * turnSpeed_;
     pitchDeg_ += static_cast<float>(deltaY) * turnSpeed_;
     pitchDeg_ = std::clamp(pitchDeg_, -89.0f, 89.0f);

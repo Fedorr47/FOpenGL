@@ -52,52 +52,17 @@ GLApplication::~GLApplication()
 
 void GLApplication::CreateDirectionalLight()
 {
-    // Lights
-    DirectionalLightProperties dlp{};
-    dlp.Colour = {1,1,1};
-    dlp.AmbientIntensity = 0.1f;
-    dlp.DiffuseIntensity = 0.6f;
-    dlp.Direction = { 0.0f, -7.0f, -5.0f };
-    dlp.shadowMapPtr->Initialize(2048, 2048);
-    
-    dirLight_ = std::make_shared<DirectionalLight>(DirectionalLight(dlp));
+    dirLight_ = std::make_shared<DirectionalLight>(LightUtils::get_default_direct_light_properties());
 }
 
-void GLApplication::AddPointLights()
+void GLApplication::AddPointLight()
 {
-    PointLightProperties plp{};
-
-    // TODO: Point lights needed to be optimized 
-    plp.Colour = {1,1,1};
-    plp.Position = {0.0f,1.0f,-0.5f};
-    plp.shadowMapPtr->Initialize(1024, 1024);
-    plp.nearPlane = 0.01f;
-    plp.farPlane = 100.0f;
-    pointLights_.push_back(std::make_shared<PointLight>(plp));
-
-    /*
-    plp.Colour = {0,0,1};
-    plp.Position = { 3,1,-2.5};
-    pointLights_.push_back(std::make_shared<PointLight>(plp));
-    */
+    pointLights_.push_back(std::make_shared<PointLight>(LightUtils::get_default_point_light_properties()));
 }
 
-void GLApplication::AddSpotLights()
+void GLApplication::AddSpotLight()
 {
-    /*
-    SpotLightProperties slp{};
-    slp.Colour= {1,1,1};
-    slp.Edge = 20.0f;
-    slp.Position  = {0.f, 5.f, -2.5f};
-    slp.Direction = {0.f, -1.f, 0.f};
-    slp.shadowMapPtr->Initialize(1024, 1024);
-    slp.nearPlane = 0.01f;
-    slp.farPlane = 100.0f;
-
-    spotLights_.push_back(std::make_shared<SpotLight>(slp));
-    //slp.Colour = {0,0,1}; slp.Position = {-4,5,-3};
-    //spotLights_.push_back(std::make_shared<SpotLight>(slp));
-    */
+    spotLights_.push_back(std::make_shared<SpotLight>(LightUtils::get_default_spot_light_properties()));
 }
 
 void GLApplication::CreateShaders()
@@ -119,6 +84,12 @@ void GLApplication::CreateShaders()
         "shaders/omni_directional_shadow_map.geom")) {
         throw std::exception("Failed to create shadow shader.\n");
         }
+    
+    lampShader_ = std::make_unique<Shader>();
+    if (!directionalShadowshader_->CreateFromFiles("shaders/lamp.vert",
+        "shaders/lamp.frag")) {
+        throw std::exception("Failed to create shadow shader.\n");
+        }
 }
 
 void GLApplication::CreateTextures()
@@ -134,6 +105,40 @@ void GLApplication::CreateTextures()
     auto tex3 = std::make_unique<Texture>("assets/textures/plain.png");
     tex3->LoadA();
     textures_.push_back(std::move(tex3));
+}
+
+void GLApplication::CreateLightMarker()
+{
+    static const std::vector<float> kCubeVerts = {
+        //  x, y, z      u, v     nx, ny, nz (unlit = 0)
+        -1, -1, -1,    0, 0,     0,  0,  0,  // 0
+         1, -1, -1,    1, 0,     0,  0,  0,  // 1
+         1,  1, -1,    1, 1,     0,  0,  0,  // 2
+        -1,  1, -1,    0, 1,     0,  0,  0,  // 3
+        -1, -1,  1,    0, 0,     0,  0,  0,  // 4
+         1, -1,  1,    1, 0,     0,  0,  0,  // 5
+         1,  1,  1,    1, 1,     0,  0,  0,  // 6
+        -1,  1,  1,    0, 1,     0,  0,  0   // 7
+    };
+
+    // CCW triangles, outward faces
+    static const std::vector<unsigned> kCubeIdx = {
+        // front (+Z): 4,5,6,7
+        4, 5, 6,   4, 6, 7,
+        // back (-Z): 0,1,2,3
+        0, 2, 1,   0, 3, 2,
+        // left (-X): 0,3,7,4
+        0, 7, 3,   0, 4, 7,
+        // right (+X): 1,5,6,2
+        1, 6, 5,   1, 2, 6,
+        // top (+Y): 3,2,6,7
+        3, 6, 2,   3, 7, 6,
+        // bottom (-Y): 0,4,5,1
+        0, 5, 4,   0, 1, 5
+    };
+    
+    cubeMesh_ = std::make_unique<Mesh>();
+    cubeMesh_->Create(kCubeVerts, kCubeIdx, 8);
 }
 
 void GLApplication::CreateSkybox()
@@ -164,18 +169,16 @@ void GLApplication::CreateScene()
     camera_ = std::make_shared<Camera>(
         glm::vec3(0.0f, 1.0f, 5.0f),
         glm::vec3(0.0f, 1.0f, 0.0f),
-        -90.0f, 0.0f, 5.0f, 0.1f);
+        -90.0f, 0.0f, 5.0f, 1.0f);
 
     projection_ = glm::perspective(glm::radians(45.0f),
         static_cast<float>(window_->GetBufferWidth())/static_cast<float>(window_->GetBufferHeight()),
         0.1f, 100.0f);
 
-   CreateShaders();
+    CreateShaders();
 
     // Lights
     CreateDirectionalLight();
-    AddPointLights();
-    AddSpotLights();
     
     // Geometry: a simple floor quad and a pyramid
     std::vector<float> pyramid = {
@@ -206,6 +209,7 @@ void GLApplication::CreateScene()
     meshes_.push_back(std::move(m2));
 
     CreateTextures();
+    CreateLightMarker();
     CreateSkybox();
 
     // Materials
@@ -265,8 +269,9 @@ void GLApplication::DrawPyramids(glm::mat4& model)
     */
 }
 
-void GLApplication::DrawModels(glm::mat4& model, Shader& sh, bool depthOnly)
+void GLApplication::DrawModels(Shader& sh, bool depthOnly)
 {
+    glm::mat4 model(1.f);
     for (std::shared_ptr<Model>& modelObj : models_)
     {
         model = glm::translate(model, modelObj->GetTranslation());
@@ -347,7 +352,7 @@ void GLApplication::RenderPass()
     
     glm::mat4 cameraViewMatrix = camera_->GetViewMatrix();
     
-    skybox_->Draw(cameraViewMatrix, projection_);
+    //skybox_->Draw(cameraViewMatrix, projection_);
     
     shader_->Use();
 
@@ -375,6 +380,7 @@ void GLApplication::RenderPass()
                   baseOmniTex + (unsigned)pointLights_.size(),
                   /*shadowIndexOffset=*/(unsigned)pointLights_.size()); 
     RenderScene(*shader_, /*depthOnly=*/false);
+    //DrawLightMarkers(cameraViewMatrix);
 }
 
 void GLApplication::RenderScene(Shader& sh, bool depthOnly)
@@ -390,7 +396,7 @@ void GLApplication::RenderScene(Shader& sh, bool depthOnly)
     meshes_[1]->Draw();
 
     //DrawPyramids(model);
-    DrawModels(model, sh, depthOnly);
+    DrawModels(sh, depthOnly);
 }
 
 void GLApplication::ChangeViewMode()
@@ -458,14 +464,17 @@ void GLApplication::Run()
         }
 
         DirectionalShadowMapPass(dirLight_);
-        for (size_t i = 0; i < pointLights_.size(); ++i)
+        
+        for (const std::shared_ptr<PointLight>& point_light_src : pointLights_)
         {
-            OmniShadowMapPass(pointLights_[i]);
+            OmniShadowMapPass(point_light_src);
         }
-        for (size_t i = 0; i < spotLights_.size(); ++i)
+        for (const std::shared_ptr<SpotLight>& spot_light_src : spotLights_)
         {
-            OmniShadowMapPass(spotLights_[i]);
+            OmniShadowMapPass(spot_light_src);
         }
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         RenderPass();
         DrawUI();
 
@@ -495,5 +504,22 @@ void GLApplication::SetGameInputMode(bool enabled)
     } else {
         glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+}
+
+void GLApplication::DrawLightMarkers(const glm::mat4& view)
+{
+    lampShader_->Use();
+    glUniformMatrix4fv(lampShader_->GetUniformProj(), 1, GL_FALSE, glm::value_ptr(projection_));
+    glUniformMatrix4fv(lampShader_->GetUniformView(), 1, GL_FALSE, glm::value_ptr(view));
+    
+    for (const std::shared_ptr<PointLight>& point_light_src : pointLights_)
+    {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, point_light_src->GetProperties()->Position);
+        model = glm::scale(model, glm::vec3(0.15f));
+        
+        glUniformMatrix4fv(lampShader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
+        cubeMesh_->Draw();
     }
 }

@@ -2,8 +2,6 @@
 #include "Light/Light.h"
 #include "Light/LightProperties.h"
 
-#include <glm/gtc/constants.hpp>
-
 class DirectionalLight
   : public Light
   , public LightTypeMixin<DirectionalLight, LightTraits>
@@ -14,9 +12,9 @@ public:
     using UniformT  = typename Mixin::UniformType;
 
     DirectionalLight() = default;
-    DirectionalLight(PropsType& inProps)
+    DirectionalLight(const PropsType& inProps)
     {
-        SetProperties(inProps);
+        DirectionalLight::SetProperties(inProps);
     }
     
     void UseLight(const DirectionalLightUniformObjects& u) const override

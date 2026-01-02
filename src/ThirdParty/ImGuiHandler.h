@@ -1,6 +1,6 @@
-
 #pragma once
 #include "Light/SpotLight.h"
+#include "Utils/RenderUtils.h"
 #ifdef USE_IMGUI
 #include <vector>
 #include <imgui.h>
@@ -19,51 +19,7 @@ namespace ImGuiHandler
         ImGui::SliderFloat("Diffuse", &p.DiffuseIntensity, 0.0f, 5.0f);
         ImGui::End();
     }
-
-    inline PointLightProperties MakeDefaultPL()
-    {
-        PointLightProperties p{};
-        p.Colour = {1.0f, 1.0f, 1.0f};
-        p.AmbientIntensity = 0.1f;
-        p.DiffuseIntensity = 1.0f;
-        p.Position = {0.0f, 1.0f, 0.0f};
-        p.Constant = 1.0f;
-        p.Linear   = 0.09f;
-        p.Exponent = 0.032f;
-        
-        p.nearPlane = 0.01f;
-        p.farPlane  = 100.0f;
-        if (p.shadowMapPtr)
-        {
-            p.shadowMapPtr->Initialize(1024, 1024);
-        }
-        return p;
-    }
-
-    inline SpotLightProperties MakeDefaultSL()
-    {
-        SpotLightProperties p{};
-        p.Colour = {1,1,1};
-        p.AmbientIntensity = 0.1f;
-        p.DiffuseIntensity = 1.0f;
-
-        p.Position = {0.f, 5.f, -2.5f};
-        p.Direction = {0.f, -1.f, 0.f};
-        p.Edge = 20.0f;
-
-        p.Constant = 1.0f;
-        p.Linear   = 0.09f;
-        p.Exponent = 0.032f;
-        p.nearPlane = 0.01f;
-        p.farPlane  = 100.0f;
-
-        if (p.shadowMapPtr) {
-            p.shadowMapPtr->Initialize(1024, 1024);
-        }
-
-        return p;
-    }
-
+    
     struct AttenPreset { const char* name; float c,l,q; };
     static constexpr AttenPreset kPresets[] = {
         {"None (no falloff)", 1.0f, 0.0f,   0.0f},
@@ -156,8 +112,8 @@ namespace ImGuiHandler
                 lights.erase(lights.begin() + desired, lights.end());
             } else {
                 while (static_cast<int>(lights.size()) < desired) {
-                    lights.push_back(std::make_shared<PointLight>(MakeDefaultPL()));
-                    lights.back() = std::make_shared<PointLight>(MakeDefaultPL());
+                    lights.push_back(std::make_shared<PointLight>(LightUtils::get_default_point_light_properties()));
+                    lights.back() = std::make_shared<PointLight>(LightUtils::get_default_point_light_properties());
                 }
             }
             current = desired;
@@ -204,7 +160,7 @@ namespace ImGuiHandler
                 props.Exponent = std::max(props.Exponent, 0.0f);
 
                 if (ImGui::Button("Reset")) {
-                    props = MakeDefaultPL();
+                    props = LightUtils::get_default_point_light_properties();
                 }
                 ImGui::SameLine();
                 bool deleted = false;
@@ -237,7 +193,7 @@ namespace ImGuiHandler
         }
     
         if (ImGui::Button("Add") && static_cast<int>(lights.size()) < maxCount) {
-            lights.push_back(std::make_shared<PointLight>(MakeDefaultPL()));
+            lights.push_back(std::make_shared<PointLight>(LightUtils::get_default_point_light_properties()));
         }
     
         ImGui::SameLine();
@@ -267,8 +223,7 @@ namespace ImGuiHandler
                 lights.erase(lights.begin() + desired, lights.end());
             } else {
                 while (static_cast<int>(lights.size()) < desired) {
-                    lights.push_back(std::make_shared<SpotLight>(MakeDefaultSL()));
-                    // NOTE: у тебя было double-assign в point версии — тут не нужно
+                    lights.push_back(std::make_shared<SpotLight>(LightUtils::get_default_spot_light_properties()));
                 }
             }
             current = desired;
@@ -284,7 +239,7 @@ namespace ImGuiHandler
             const bool open = ImGui::TreeNodeEx("SpotLight", ImGuiTreeNodeFlags_DefaultOpen, "SpotLight %d", i);
             if (open)
             {
-                auto props = light.GetLightProperties(); // важно: если это возвращает КОПИЮ — ок, мы потом SetProperties(props)
+                auto props = light.GetLightProperties();
 
                 float col[3] = { props.Colour.r, props.Colour.g, props.Colour.b };
                 if (ImGui::ColorEdit3("Colour", col)) {
@@ -298,7 +253,6 @@ namespace ImGuiHandler
 
                 // Direction
                 ImGui::DragFloat3("Direction", &props.Direction.x, 0.02f);
-                // чуть-чуть safety: не даём полностью нулевой вектор (иначе normalize -> NaN в шейдере/коде)
                 if (ImGui::Button("Dir = -Y")) {
                     props.Direction = glm::vec3(0.f, -1.f, 0.f);
                 }
@@ -314,14 +268,12 @@ namespace ImGuiHandler
                         props.Direction = glm::vec3(0.f, -1.f, 0.f);
                     }
                 }
-
-                // Edge (обычно в градусах)
+                
                 ImGui::SliderFloat("Edge (deg)", &props.Edge, 0.0f, 90.0f, "%.1f");
                 props.Edge = std::clamp(props.Edge, 0.0f, 90.0f);
 
                 ImGui::Separator();
-
-                // Attenuation presets (как в point)
+                
                 if (ImGui::BeginCombo("Attenuation preset", "Select…")) {
                     for (int p = 0; p < (int)std::size(kPresets); ++p) {
                         if (ImGui::Selectable(kPresets[p].name)) {
@@ -344,7 +296,7 @@ namespace ImGuiHandler
                 ImGui::Separator();
 
                 if (ImGui::Button("Reset")) {
-                    props = MakeDefaultSL();
+                    props = LightUtils::get_default_spot_light_properties();
                 }
 
                 ImGui::SameLine();
@@ -356,7 +308,7 @@ namespace ImGuiHandler
                 }
 
                 if (!deleted) {
-                    light.SetProperties(props); // тут должен пересчитаться ProcEdge и т.п.
+                    light.SetProperties(props);
                     ++i;
                 }
 
@@ -379,7 +331,7 @@ namespace ImGuiHandler
         }
 
         if (ImGui::Button("Add") && static_cast<int>(lights.size()) < maxCount) {
-            lights.push_back(std::make_shared<SpotLight>(MakeDefaultSL()));
+            lights.push_back(std::make_shared<SpotLight>(LightUtils::get_default_spot_light_properties()));
         }
 
         ImGui::SameLine();

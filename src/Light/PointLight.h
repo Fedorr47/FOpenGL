@@ -21,7 +21,7 @@ public:
     PointLightBase() = default;
     PointLightBase(const PropsType& inProps)
     {
-        SetProperties(inProps);
+        PointLightBase<Derived>::SetProperties(inProps);
     }
     
     void UseLight(const UniformType& u) const override
@@ -35,7 +35,7 @@ public:
         glUniform1f(u.Exponent, p.Exponent);
     }
 
-    const CommonLightProperties* GetProperties() const
+    const PropsType* GetProperties() const
     {
         return &Mixin::GetLightProperties();
     }

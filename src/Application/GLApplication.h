@@ -33,14 +33,16 @@ public:
     ~GLApplication();
 
     //---------- Lights Start ----------//
-    void AddPointLights();
-    void AddSpotLights();
+    void AddPointLight();
+    void AddSpotLight();
     void CreateShaders();
     void CreateTextures();
+    void CreateLightMarker();
     void CreateDirectionalLight();
     //---------- Lights End  ----------//
     void Run();
     void SetGameInputMode(bool enabled);
+    void DrawLightMarkers(const glm::mat4& view);
 
     void AddModels();
 
@@ -51,7 +53,7 @@ private:
     void ChangeViewMode();
     void DrawUI();
     void DrawPyramids(glm::mat4& model);
-    void DrawModels(glm::mat4& model, Shader& sh, bool depthOnly);
+    void DrawModels(Shader& sh, bool depthOnly);
     void DirectionalShadowMapPass(std::shared_ptr<DirectionalLight> light);
     template <class T>
     void OmniShadowMapPass(std::shared_ptr<T> light);
@@ -62,12 +64,15 @@ private:
     std::unique_ptr<Shader> shader_;
     std::unique_ptr<Shader> directionalShadowshader_;
     std::unique_ptr<Shader> omniShadowshader_;
+    std::unique_ptr<Shader> lampShader_;
 
     std::shared_ptr<Camera> camera_;
 
     std::shared_ptr<DirectionalLight> dirLight_;
     std::vector<std::shared_ptr<PointLight>> pointLights_;
     std::vector<std::shared_ptr<SpotLight>> spotLights_;
+    
+    std::unique_ptr<Mesh> cubeMesh_;
 
     std::vector<std::unique_ptr<Mesh>> meshes_;
     std::vector<std::shared_ptr<Material>> materials_;

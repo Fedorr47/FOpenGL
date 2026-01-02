@@ -33,3 +33,63 @@ static void ComputeAverageNormals(
         v[i*strideFloats+normalOffset+2] = n.z;
     }
 }
+
+namespace LightUtils
+{
+    
+    static DirectionalLightProperties get_default_direct_light_properties()
+    {
+        DirectionalLightProperties dlp{};
+        dlp.Colour = {1,1,1};
+        dlp.AmbientIntensity = 0.1f;
+        dlp.DiffuseIntensity = 0.6f;
+        dlp.Direction = { 0.0f, -7.0f, -5.0f };
+        dlp.shadowMapPtr->Initialize(2048, 2048);
+        
+        return dlp;
+    }
+    
+    static PointLightProperties get_default_point_light_properties()
+    {
+        PointLightProperties p{};
+        p.Colour = {1.0f, 1.0f, 1.0f};
+        p.AmbientIntensity = 0.1f;
+        p.DiffuseIntensity = 1.0f;
+        p.Position = {0.0f, 1.0f, 0.0f};
+        p.Constant = 1.0f;
+        p.Linear   = 0.09f;
+        p.Exponent = 0.032f;
+        
+        p.nearPlane = 0.01f;
+        p.farPlane  = 100.0f;
+        if (p.shadowMapPtr)
+        {
+            p.shadowMapPtr->Initialize(1024, 1024);
+        }
+        return p;
+    }
+
+    static SpotLightProperties get_default_spot_light_properties()
+    {
+        SpotLightProperties p{};
+        p.Colour = {1,1,1};
+        p.AmbientIntensity = 0.1f;
+        p.DiffuseIntensity = 1.0f;
+
+        p.Position = {0.f, 5.f, -2.5f};
+        p.Direction = {0.f, -1.f, 0.f};
+        p.Edge = 20.0f;
+
+        p.Constant = 1.0f;
+        p.Linear   = 0.09f;
+        p.Exponent = 0.032f;
+        p.nearPlane = 0.01f;
+        p.farPlane  = 100.0f;
+
+        if (p.shadowMapPtr) {
+            p.shadowMapPtr->Initialize(1024, 1024);
+        }
+
+        return p;
+    }
+}

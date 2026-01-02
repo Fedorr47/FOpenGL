@@ -12,7 +12,7 @@ class SpotLight : public PointLightBase<SpotLight>
 public:
     SpotLight(const PropsType& p)
     {
-        SetProperties(p);
+        SpotLight::SetProperties(p);
     }
     
     void UseLight(const UniformType& u) const override

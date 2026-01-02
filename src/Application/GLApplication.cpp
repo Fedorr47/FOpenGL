@@ -86,10 +86,9 @@ void GLApplication::CreateShaders()
         }
     
     lampShader_ = std::make_unique<Shader>();
-    if (!directionalShadowshader_->CreateFromFiles("shaders/lamp.vert",
-        "shaders/lamp.frag")) {
-        throw std::exception("Failed to create shadow shader.\n");
-        }
+    if (!lampShader_->CreateFromFiles("shaders/lamp.vert", "shaders/lamp.frag")) {
+        throw std::exception("Failed to create lamp shader.\n");
+    }
 }
 
 void GLApplication::CreateTextures()
@@ -210,7 +209,7 @@ void GLApplication::CreateScene()
 
     CreateTextures();
     CreateLightMarker();
-    CreateSkybox();
+    //CreateSkybox();
 
     // Materials
     materials_.push_back(std::make_shared<Material>(1.0f,64.0f)); // shiny
@@ -380,7 +379,7 @@ void GLApplication::RenderPass()
                   baseOmniTex + (unsigned)pointLights_.size(),
                   /*shadowIndexOffset=*/(unsigned)pointLights_.size()); 
     RenderScene(*shader_, /*depthOnly=*/false);
-    //DrawLightMarkers(cameraViewMatrix);
+    DrawLightMarkers(cameraViewMatrix);
 }
 
 void GLApplication::RenderScene(Shader& sh, bool depthOnly)
@@ -474,7 +473,6 @@ void GLApplication::Run()
             OmniShadowMapPass(spot_light_src);
         }
         
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         RenderPass();
         DrawUI();
 
@@ -509,17 +507,42 @@ void GLApplication::SetGameInputMode(bool enabled)
 
 void GLApplication::DrawLightMarkers(const glm::mat4& view)
 {
+    if (!lampShader_ || !cubeMesh_)
+    {
+        return;
+    }
+    
     lampShader_->Use();
     glUniformMatrix4fv(lampShader_->GetUniformProj(), 1, GL_FALSE, glm::value_ptr(projection_));
     glUniformMatrix4fv(lampShader_->GetUniformView(), 1, GL_FALSE, glm::value_ptr(view));
     
-    for (const std::shared_ptr<PointLight>& point_light_src : pointLights_)
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    
+    for (size_t i = 0; i < pointLights_.size(); i++)
     {
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, point_light_src->GetProperties()->Position);
+        model = glm::translate(model, pointLights_[i]->GetProperties()->Position);
         model = glm::scale(model, glm::vec3(0.15f));
         
         glUniformMatrix4fv(lampShader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
+        glUniform3f(lampShader_->GetUniformColour(), 1.f, 1.f, 1.f);
         cubeMesh_->Draw();
     }
+    
+    for (size_t i = 0; i < spotLights_.size(); i++)
+    {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, spotLights_[i]->GetProperties()->Position);
+        model = glm::scale(model, glm::vec3(0.15f));
+        
+        glUniformMatrix4fv(lampShader_->GetUniformModel(), 1, GL_FALSE, glm::value_ptr(model));
+        glUniform3f(lampShader_->GetUniformColour(), 1.f, 1.f, 1.f);
+        cubeMesh_->Draw();
+    }
+    
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

@@ -31,7 +31,8 @@ public:
     void SetLightMatrices(const std::vector<glm::mat4>& lightMatrices);
 
     void Clear();
-
+    
+    GLint GetUniformColour() const { return uniColour_; }
     GLint GetUniformModel() const { return uniModel_; }
     GLint GetUniformView() const { return uniView_; }
     GLint GetUniformProj() const { return uniProj_; }
@@ -81,6 +82,7 @@ private:
     GLint uniModel_ = -1, uniView_ = -1, uniProj_ = -1;
     GLint uniEyePos_ = -1, uniSpecularIntensity_ = -1, uniShininess_ = -1;
     GLint uniTexture_ = -1;
+    GLint uniColour_ = -1;
     GLint uniDirectionalLightTransform_ = -1, uniDirectionalShadowMap_ = -1;
 
     // omni / point-light shadow (cubemap) uniforms

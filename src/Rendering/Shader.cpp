@@ -152,6 +152,8 @@ void Shader::ReflectUniforms()
     uniView_  = get("view");
     uniProj_  = get("projection");
     uniEyePos_ = get("eyePosition");
+    
+    uniColour_ = get("colour");
 
     uniSpecularIntensity_ = get("material.specularIntensity");
     uniShininess_ = get("material.shininess");
